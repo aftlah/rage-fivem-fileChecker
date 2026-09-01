@@ -1,9 +1,10 @@
-import type { ReactElement } from "react";
+import { useEffect, useState, type ReactElement } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { scanRules } from "@/scanner/rules";
 import { useSettings } from "@/hooks/useSettings";
+import { isOpenWithFiveMEnabled, setOpenWithFiveMEnabled } from "@/lib/autostart";
 
 export function SettingsPage(): ReactElement {
   const {
@@ -97,8 +98,8 @@ export function SettingsPage(): ReactElement {
           <div>
             <p className="text-sm font-medium">Scan when FiveM starts</p>
             <p className="text-sm text-muted-foreground">
-            Keep this app open. When FiveM launches, the folder path switches to that FiveM
-            installation and a scan runs automatically.
+              When FiveM launches, the folder path switches to that FiveM installation and a scan
+              runs automatically.
             </p>
           </div>
           <Switch
@@ -107,6 +108,7 @@ export function SettingsPage(): ReactElement {
             aria-label="Toggle scan when FiveM starts"
           />
         </CardContent>
+        <OpenWithFiveMSetting />
       </Card>
 
       <Card>
@@ -139,6 +141,46 @@ export function SettingsPage(): ReactElement {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function OpenWithFiveMSetting(): ReactElement {
+  const [enabled, setEnabled] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    void isOpenWithFiveMEnabled().then(setEnabled);
+  }, []);
+
+  async function handleChange(next: boolean): Promise<void> {
+    setBusy(true);
+    try {
+      await setOpenWithFiveMEnabled(next);
+      setEnabled(next);
+    } catch {
+      const current = await isOpenWithFiveMEnabled();
+      setEnabled(current);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <CardContent className="flex items-center justify-between border-t border-border">
+      <div>
+        <p className="text-sm font-medium">Open when FiveM starts</p>
+        <p className="text-sm text-muted-foreground">
+          Starts this app in the background with Windows. When FiveM opens, the scanner window
+          appears and a scan can run.
+        </p>
+      </div>
+      <Switch
+        checked={enabled}
+        disabled={busy}
+        onCheckedChange={(checked) => void handleChange(checked)}
+        aria-label="Toggle open when FiveM starts"
+      />
+    </CardContent>
   );
 }
 

@@ -10,15 +10,17 @@
     "frontendDist": "../dist"
   },
   "app": {
-    "windows": [
+        "windows": [
       {
+        "label": "main",
         "title": "RAGE File Scanner",
         "width": 1180,
         "height": 800,
         "minWidth": 960,
         "minHeight": 680,
         "center": true,
-        "resizable": true
+        "resizable": true,
+        "visible": false
       }
     ],
     "security": {

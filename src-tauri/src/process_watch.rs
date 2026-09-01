@@ -1,7 +1,7 @@
 use serde::Serialize;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Manager};
 
 use crate::validation::{is_fivem_data_root_name, pick_fivem_data_root};
 
@@ -33,6 +33,7 @@ pub fn start(app: AppHandle) {
             }
 
             if running && !was_running {
+                show_main_window(&app);
                 let _ = app.emit(
                     "fivem-launched",
                     FiveMLaunched {
@@ -44,6 +45,14 @@ pub fn start(app: AppHandle) {
             was_running = running;
         }
     });
+}
+
+pub fn show_main_window(app: &AppHandle) {
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.unminimize();
+        let _ = window.show();
+        let _ = window.set_focus();
+    }
 }
 
 fn is_fivem_process_name(name: &str) -> bool {
