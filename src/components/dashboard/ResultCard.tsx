@@ -28,6 +28,7 @@ export function ResultCard({ result }: ResultCardProps): ReactElement {
     }
   }
 
+  const foundFiles = result.foundFiles ?? [];
   const isDetected = result.status === "DETECTED";
   const isError = result.status === "ERROR";
 
@@ -58,6 +59,16 @@ export function ResultCard({ result }: ResultCardProps): ReactElement {
                 label="Last Modified"
                 value={formatModifiedAt(result.modifiedAt) ?? "Not available"}
               />
+              {foundFiles.length > 0 ? (
+                <div>
+                  <dt className="text-xs uppercase tracking-wide text-muted-foreground">
+                    Files found
+                  </dt>
+                  <dd className="mt-1 max-h-36 overflow-y-auto whitespace-pre-wrap break-all text-sm">
+                    {foundFiles.join("\n")}
+                  </dd>
+                </div>
+              ) : null}
             </>
           ) : (
             <InfoRow label="Checked" value={result.relativePath || result.path} />

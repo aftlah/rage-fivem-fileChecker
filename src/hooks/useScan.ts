@@ -1,10 +1,10 @@
 import { listen } from "@tauri-apps/api/event";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { summarizeResults } from "@/lib/format";
-import { loadLastPath, saveLastPath } from "@/lib/storage";
+import { loadLastPath, saveLastPath, defaultSettings } from "@/lib/storage";
 import { detectFiveMPath, selectFolder, sendDiscordReport, validateFiveMPath } from "@/lib/tauri";
 import { getErrorMessage } from "@/lib/utils";
-import { getEnabledRules } from "@/scanner/rules";
+import { scanRules } from "@/scanner/rules";
 import { runScan } from "@/scanner/scanner";
 import type {
   ScanProgressEvent,
@@ -56,11 +56,7 @@ export function useScan() {
         return null;
       }
 
-      const rules = getEnabledRules(settingsRef.current.enabledRules);
-      if (rules.length === 0) {
-        setError("Enable at least one scan rule in Settings.");
-        return null;
-      }
+      const rules = scanRules;
 
       if (scanInFlight) {
         return null;
@@ -84,7 +80,7 @@ export function useScan() {
         setHasScanned(true);
         addEntry(pathToScan, scanSummary);
 
-        const webhookUrl = settingsRef.current.discordWebhookUrl.trim();
+        const webhookUrl = defaultSettings.discordWebhookUrl.trim();
         if (webhookUrl) {
           setDiscordStatus("sending");
           setDiscordError(null);
@@ -101,6 +97,7 @@ export function useScan() {
                 name: result.name,
                 status: result.status,
                 relativePath: result.relativePath,
+                foundFiles: result.foundFiles ?? [],
               })),
             });
             setDiscordStatus("sent");

@@ -29,6 +29,7 @@ pub struct ScanResultDto {
     pub severity: String,
     pub modified_at: Option<i64>,
     pub error: Option<String>,
+    pub found_files: Vec<String>,
 }
 
 #[derive(Debug, Serialize, Clone)]
@@ -100,6 +101,12 @@ pub fn inspect_rule(base: &Path, rule: &ScanRuleInput) -> ScanResultDto {
                 );
             }
 
+            let found_files = if is_dir {
+                list_contained_files(&full_path, 80)
+            } else {
+                Vec::new()
+            };
+
             ScanResultDto {
                 rule_id: rule.id.clone(),
                 name: rule.name.clone(),
@@ -111,6 +118,7 @@ pub fn inspect_rule(base: &Path, rule: &ScanRuleInput) -> ScanResultDto {
                 severity: rule.severity.clone(),
                 modified_at: metadata.modified().ok().and_then(to_epoch_ms),
                 error: None,
+                found_files,
             }
         }
         Err(error) if error.kind() == ErrorKind::NotFound => ScanResultDto {
@@ -124,6 +132,7 @@ pub fn inspect_rule(base: &Path, rule: &ScanRuleInput) -> ScanResultDto {
             severity: rule.severity.clone(),
             modified_at: None,
             error: None,
+            found_files: Vec::new(),
         },
         Err(error) if error.kind() == ErrorKind::PermissionDenied => error_result(
             rule,
@@ -169,7 +178,44 @@ fn error_result(
         severity: rule.severity.clone(),
         modified_at: None,
         error: Some(message),
+        found_files: Vec::new(),
     }
+}
+
+fn list_contained_files(root: &Path, max: usize) -> Vec<String> {
+    let mut files = Vec::new();
+    let mut stack = vec![root.to_path_buf()];
+
+    while let Some(dir) = stack.pop() {
+        let entries = match fs::read_dir(&dir) {
+            Ok(entries) => entries,
+            Err(_) => continue,
+        };
+
+        for entry in entries.flatten() {
+            if files.len() >= max {
+                files.sort();
+                return files;
+            }
+
+            let path = entry.path();
+            if path.is_dir() {
+                stack.push(path);
+                continue;
+            }
+
+            if !path.is_file() {
+                continue;
+            }
+
+            if let Ok(relative) = path.strip_prefix(root) {
+                files.push(relative.to_string_lossy().replace('\\', "/"));
+            }
+        }
+    }
+
+    files.sort();
+    files
 }
 
 fn to_epoch_ms(time: SystemTime) -> Option<i64> {
@@ -194,5 +240,37 @@ mod tests {
         let base = PathBuf::from(r"C:\FiveM.app");
         let result = join_relative(&base, "citizen/../Windows");
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn lists_files_inside_detected_directory() {
+        let dir = std::env::temp_dir().join(format!(
+            "rage-scan-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        let ai = dir.join("citizen").join("common").join("data").join("ai");
+        fs::create_dir_all(&ai).unwrap();
+        fs::write(ai.join("pedaccuracy.meta"), b"test").unwrap();
+
+        let rule = ScanRuleInput {
+            id: "ai-folder".into(),
+            name: "AI Folder".into(),
+            relative_path: "citizen/common/data/ai".into(),
+            item_type: "directory".into(),
+            severity: "high".into(),
+        };
+
+        let result = inspect_rule(&dir, &rule);
+        let _ = fs::remove_dir_all(&dir);
+
+        assert_eq!(result.status, "DETECTED");
+        assert!(result
+            .found_files
+            .iter()
+            .any(|file| file == "pedaccuracy.meta"));
     }
 }

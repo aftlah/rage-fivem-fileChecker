@@ -29,7 +29,12 @@ export function sendDiscordReport(report: {
   detected: number;
   notDetected: number;
   errors: number;
-  results: Array<{ name: string; status: string; relativePath: string }>;
+  results: Array<{
+    name: string;
+    status: string;
+    relativePath: string;
+    foundFiles: string[];
+  }>;
 }): Promise<void> {
   return invoke<void>("send_discord_report", { report });
 }

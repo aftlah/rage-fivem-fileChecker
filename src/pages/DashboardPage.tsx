@@ -18,9 +18,10 @@ export function DashboardPage(): ReactElement {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">rage-file-checker</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">RAGE File Scanner</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Scanning as {settings.operatorName}. Keep this app open. When FiveM starts, a scan is sent to Discord.
+          Checks include AI files such as pedaccuracy.meta and other client files that can change game settings.
         </p>
       </div>
 

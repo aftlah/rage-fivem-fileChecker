@@ -6,6 +6,8 @@ pub struct DiscordResultItem {
     pub name: String,
     pub status: String,
     pub relative_path: String,
+    #[serde(default)]
+    pub found_files: Vec<String>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -38,29 +40,10 @@ pub fn send_scan_report(report: DiscordReport) -> Result<(), String> {
         _ => 0x22_C5_5E,
     };
 
-    let result_lines = if report.results.is_empty() {
-        "No checks were reported.".to_string()
-    } else {
-        report
-            .results
-            .iter()
-            .map(|item| {
-                let status = if item.status == "NOT_FOUND" {
-                    "NOT DETECTED"
-                } else {
-                    item.status.as_str()
-                };
-                format!(
-                    "• **{}**: {status} (`{}`)",
-                    item.name, item.relative_path
-                )
-            })
-            .collect::<Vec<_>>()
-            .join("\n")
-    };
+    let result_lines = format_check_lines(&report);
 
     let payload = serde_json::json!({
-        "username": "rage-file-checker",
+        "username": "RAGE File Scanner",
         "embeds": [{
             "title": format!("Scan result: {}", report.overall_status),
             "color": color,
@@ -82,6 +65,71 @@ pub fn send_scan_report(report: DiscordReport) -> Result<(), String> {
         .map_err(|error| format!("Failed to send Discord report: {error}"))?;
 
     Ok(())
+}
+
+fn format_check_lines(report: &DiscordReport) -> String {
+    if report.results.is_empty() {
+        return "No checks were reported.".to_string();
+    }
+
+    let mut flagged: Vec<&DiscordResultItem> = report
+        .results
+        .iter()
+        .filter(|item| item.status != "NOT_FOUND")
+        .collect();
+    flagged.sort_by(|left, right| left.status.cmp(&right.status).then(left.name.cmp(&right.name)));
+
+    let mut lines = if flagged.is_empty() {
+        vec!["All checked files were not detected.".to_string()]
+    } else {
+        flagged.iter().map(|item| format_result_item(item)).collect()
+    };
+
+    if report.not_detected > 0 && !flagged.is_empty() {
+        lines.push(format!(
+            "• {} other check(s) not detected.",
+            report.not_detected
+        ));
+    }
+
+    truncate_field(&lines.join("\n"), 1024)
+}
+
+fn format_result_item(item: &DiscordResultItem) -> String {
+    let status = if item.status == "NOT_FOUND" {
+        "NOT DETECTED"
+    } else {
+        item.status.as_str()
+    };
+
+    let mut line = format!("• **{}**: {status} (`{}`)", item.name, item.relative_path);
+    if !item.found_files.is_empty() {
+        let preview: Vec<&str> = item
+            .found_files
+            .iter()
+            .take(8)
+            .map(String::as_str)
+            .collect();
+        let extra = item.found_files.len().saturating_sub(preview.len());
+        let files = if extra > 0 {
+            format!("{}; +{extra} more", preview.join(", "))
+        } else {
+            preview.join(", ")
+        };
+        line.push_str(&format!("\n  files: {files}"));
+    }
+    line
+}
+
+fn truncate_field(value: &str, max: usize) -> String {
+    if value.chars().count() <= max {
+        return value.to_string();
+    }
+
+    let keep = max.saturating_sub(14);
+    let mut truncated: String = value.chars().take(keep).collect();
+    truncated.push_str("\n…truncated");
+    truncated
 }
 
 fn is_discord_webhook(url: &str) -> bool {

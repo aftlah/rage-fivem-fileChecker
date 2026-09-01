@@ -15,7 +15,12 @@ export async function runScan(
     return await invoke<ScanResult[]>("scan_fivem", {
       path: selectedFiveMPath,
       rules,
-    });
+    }).then((results) =>
+      results.map((result) => ({
+        ...result,
+        foundFiles: result.foundFiles ?? [],
+      })),
+    );
   } finally {
     unlisten();
   }

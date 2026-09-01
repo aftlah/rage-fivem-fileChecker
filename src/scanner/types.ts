@@ -25,6 +25,7 @@ export interface ScanResult {
   severity: ScanSeverity;
   modifiedAt: number | null;
   error: string | null;
+  foundFiles?: string[];
 }
 
 export interface ScanProgressEvent {

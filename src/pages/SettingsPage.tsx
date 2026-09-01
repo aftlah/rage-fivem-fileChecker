@@ -1,6 +1,4 @@
 import type { ReactElement } from "react";
-import { RotateCcw } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -10,13 +8,10 @@ import { useSettings } from "@/hooks/useSettings";
 export function SettingsPage(): ReactElement {
   const {
     settings,
-    setRuleEnabled,
     setTheme,
     setAutoScan,
     setScanWhenFiveMStarts,
     setOperatorName,
-    setDiscordWebhookUrl,
-    resetSettings,
   } = useSettings();
 
   return (
@@ -24,7 +19,7 @@ export function SettingsPage(): ReactElement {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Configure scan rules and appearance. The scanner remains read-only.
+          Update your character name and appearance. Scan checks and the Discord webhook are locked.
         </p>
       </div>
 
@@ -47,13 +42,9 @@ export function SettingsPage(): ReactElement {
           </label>
           <label className="block space-y-2">
             <span className="text-sm font-medium">Discord webhook URL</span>
-            <Input
-              value={settings.discordWebhookUrl}
-              onChange={(event) => setDiscordWebhookUrl(event.target.value)}
-              placeholder="https://discord.com/api/webhooks/..."
-            />
+            <Input value="Configured (locked)" readOnly disabled />
             <span className="text-xs text-muted-foreground">
-              Discord channel → Edit channel → Integrations → Webhooks → Copy webhook URL.
+              The webhook is set by the app and cannot be changed.
             </span>
           </label>
         </CardContent>
@@ -62,30 +53,21 @@ export function SettingsPage(): ReactElement {
       <Card>
         <CardHeader>
           <CardTitle>Scan Configuration</CardTitle>
-          <CardDescription>Enable or disable individual checks before scanning.</CardDescription>
+          <CardDescription>
+            These checks always run and cannot be turned off.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {scanRules.map((rule) => (
             <div
               key={rule.id}
-              className="flex items-start justify-between gap-4 rounded-lg border border-border px-4 py-3"
+              className="rounded-lg border border-border px-4 py-3"
             >
-              <div>
-                <p className="text-sm font-medium">{rule.name}</p>
-                <p className="mt-1 text-sm text-muted-foreground">{rule.description}</p>
-                <p className="mt-1 text-xs text-muted-foreground">{rule.relativePath}</p>
-              </div>
-              <Switch
-                checked={settings.enabledRules[rule.id] !== false}
-                onCheckedChange={(checked) => setRuleEnabled(rule.id, checked)}
-                aria-label={`Toggle ${rule.name}`}
-              />
+              <p className="text-sm font-medium">{rule.name}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{rule.description}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{rule.relativePath}</p>
             </div>
           ))}
-          <Button type="button" variant="outline" size="sm" onClick={resetSettings}>
-            <RotateCcw className="h-4 w-4" />
-            Reset configuration
-          </Button>
         </CardContent>
       </Card>
 
@@ -148,7 +130,7 @@ export function SettingsPage(): ReactElement {
           <CardTitle>About</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
-          <Info label="Application" value="rage-file-checker" />
+          <Info label="Application" value="RAGE File Scanner" />
           <Info label="Version" value="1.0.0" />
           <Info label="Developer" value="Aftlah" />
           <Info label="Mode" value="Read-only filesystem scanner" />

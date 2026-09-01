@@ -30,24 +30,25 @@ function parseJson<T>(value: string | null): T | null {
 
 export function loadSettings(): AppSettings {
   const stored = parseJson<Partial<AppSettings>>(localStorage.getItem(SETTINGS_KEY));
-  const enabledRules = {
-    ...defaultSettings.enabledRules,
-    ...(stored?.enabledRules ?? {}),
-  };
-
   return {
-    enabledRules,
+    enabledRules: defaultSettings.enabledRules,
     theme: stored?.theme === "light" ? "light" : "dark",
     autoScan: stored?.autoScan !== false,
     scanWhenFiveMStarts: stored?.scanWhenFiveMStarts !== false,
     operatorName: stored?.operatorName?.trim() ?? "",
-    discordWebhookUrl:
-      stored?.discordWebhookUrl?.trim() || defaultSettings.discordWebhookUrl,
+    discordWebhookUrl: defaultSettings.discordWebhookUrl,
   };
 }
 
 export function saveSettings(settings: AppSettings): void {
-  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  localStorage.setItem(
+    SETTINGS_KEY,
+    JSON.stringify({
+      ...settings,
+      enabledRules: defaultSettings.enabledRules,
+      discordWebhookUrl: defaultSettings.discordWebhookUrl,
+    }),
+  );
 }
 
 export function loadHistory(): ScanHistoryEntry[] {
