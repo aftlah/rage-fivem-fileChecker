@@ -65,7 +65,9 @@ export function SettingsPage(): ReactElement {
             >
               <p className="text-sm font-medium">{rule.name}</p>
               <p className="mt-1 text-sm text-muted-foreground">{rule.description}</p>
-              <p className="mt-1 text-xs text-muted-foreground">{rule.relativePath}</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {rule.relativePath === "." ? "Entire FiveM folder" : rule.relativePath}
+              </p>
             </div>
           ))}
         </CardContent>

@@ -1,8 +1,14 @@
+import { extraScriptsRule, pluginsFolderRule } from "./scripts";
 import { aiFolderRule } from "./aiFolder";
 import { gameDataRules } from "./gameData";
 import type { ScanRule } from "../types";
 
-export const scanRules: ScanRule[] = [aiFolderRule, ...gameDataRules];
+export const scanRules: ScanRule[] = [
+  extraScriptsRule,
+  pluginsFolderRule,
+  aiFolderRule,
+  ...gameDataRules,
+];
 
 export function getRuleById(id: string): ScanRule | undefined {
   return scanRules.find((rule) => rule.id === id);

@@ -62,6 +62,10 @@ pub fn join_relative(base: &Path, relative: &str) -> Result<PathBuf, String> {
 }
 
 pub fn inspect_rule(base: &Path, rule: &ScanRuleInput) -> ScanResultDto {
+    if rule.item_type == "scripts" {
+        return inspect_scripts(base, rule);
+    }
+
     let full_path = match join_relative(base, &rule.relative_path) {
         Ok(path) => path,
         Err(message) => {
@@ -159,6 +163,131 @@ pub fn ensure_directory(path: &Path) -> Result<(), String> {
     }
 
     Ok(())
+}
+
+fn inspect_scripts(base: &Path, rule: &ScanRuleInput) -> ScanResultDto {
+    let search_root = match join_relative(base, &rule.relative_path) {
+        Ok(path) => path,
+        Err(message) => {
+            return error_result(rule, String::new(), message, false);
+        }
+    };
+
+    if !search_root.exists() {
+        return ScanResultDto {
+            rule_id: rule.id.clone(),
+            name: rule.name.clone(),
+            status: "NOT_FOUND".to_string(),
+            path: search_root.to_string_lossy().into_owned(),
+            relative_path: rule.relative_path.clone(),
+            exists: false,
+            item_type: rule.item_type.clone(),
+            severity: rule.severity.clone(),
+            modified_at: None,
+            error: None,
+            found_files: Vec::new(),
+        };
+    }
+
+    let found_files = find_extra_scripts(&search_root, 80);
+    let path_str = search_root.to_string_lossy().into_owned();
+
+    if found_files.is_empty() {
+        return ScanResultDto {
+            rule_id: rule.id.clone(),
+            name: rule.name.clone(),
+            status: "NOT_FOUND".to_string(),
+            path: path_str,
+            relative_path: rule.relative_path.clone(),
+            exists: true,
+            item_type: rule.item_type.clone(),
+            severity: rule.severity.clone(),
+            modified_at: None,
+            error: None,
+            found_files: Vec::new(),
+        };
+    }
+
+    ScanResultDto {
+        rule_id: rule.id.clone(),
+        name: rule.name.clone(),
+        status: "DETECTED".to_string(),
+        path: path_str,
+        relative_path: rule.relative_path.clone(),
+        exists: true,
+        item_type: rule.item_type.clone(),
+        severity: rule.severity.clone(),
+        modified_at: None,
+        error: None,
+        found_files,
+    }
+}
+
+const SKIP_DIR_NAMES: [&str; 7] = [
+    "cache",
+    "logs",
+    "crashes",
+    "scripting",
+    "system_resources",
+    "clr2",
+    "nui",
+];
+
+fn is_skipped_dir(name: &std::ffi::OsStr) -> bool {
+    SKIP_DIR_NAMES
+        .iter()
+        .any(|skip| name.eq_ignore_ascii_case(skip))
+}
+
+fn is_script_file(path: &Path) -> bool {
+    path.extension()
+        .and_then(|ext| ext.to_str())
+        .map(|ext| {
+            matches!(
+                ext.to_ascii_lowercase().as_str(),
+                "lua" | "luac" | "js" | "asi"
+            )
+        })
+        .unwrap_or(false)
+}
+
+fn find_extra_scripts(root: &Path, max: usize) -> Vec<String> {
+    let mut files = Vec::new();
+    let mut stack = vec![root.to_path_buf()];
+
+    while let Some(dir) = stack.pop() {
+        let entries = match fs::read_dir(&dir) {
+            Ok(entries) => entries,
+            Err(_) => continue,
+        };
+
+        for entry in entries.flatten() {
+            if files.len() >= max {
+                files.sort();
+                return files;
+            }
+
+            let path = entry.path();
+            if path.is_dir() {
+                if is_skipped_dir(&entry.file_name()) {
+                    continue;
+                }
+                stack.push(path);
+                continue;
+            }
+
+            if !path.is_file() || !is_script_file(&path) {
+                continue;
+            }
+
+            if let Ok(relative) = path.strip_prefix(root) {
+                files.push(relative.to_string_lossy().replace('\\', "/"));
+            }
+        }
+    }
+
+    files.sort();
+    files
 }
 
 fn error_result(
@@ -272,5 +401,46 @@ mod tests {
             .found_files
             .iter()
             .any(|file| file == "pedaccuracy.meta"));
+    }
+
+    #[test]
+    fn extra_scripts_ignore_official_scripting_folder() {
+        let dir = std::env::temp_dir().join(format!(
+            "rage-scripts-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        let official = dir.join("citizen").join("scripting").join("lua");
+        let plugins = dir.join("plugins");
+        fs::create_dir_all(&official).unwrap();
+        fs::create_dir_all(&plugins).unwrap();
+        fs::write(official.join("scheduler.lua"), b"official").unwrap();
+        fs::write(plugins.join("menu.asi"), b"asi").unwrap();
+        fs::write(dir.join("extra.lua"), b"lua").unwrap();
+
+        let rule = ScanRuleInput {
+            id: "extra-scripts".into(),
+            name: "Extra Scripts".into(),
+            relative_path: ".".into(),
+            item_type: "scripts".into(),
+            severity: "high".into(),
+        };
+
+        let result = inspect_rule(&dir, &rule);
+        let _ = fs::remove_dir_all(&dir);
+
+        assert_eq!(result.status, "DETECTED");
+        assert!(result.found_files.iter().any(|file| file == "extra.lua"));
+        assert!(result
+            .found_files
+            .iter()
+            .any(|file| file == "plugins/menu.asi"));
+        assert!(!result
+            .found_files
+            .iter()
+            .any(|file| file.contains("scheduler.lua")));
     }
 }
