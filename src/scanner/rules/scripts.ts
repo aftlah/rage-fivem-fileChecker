@@ -9,12 +9,3 @@ export const extraScriptsRule: ScanRule = {
   type: "scripts",
   severity: "high",
 };
-
-export const pluginsFolderRule: ScanRule = {
-  id: "plugins-folder",
-  name: "Plugins Folder",
-  description: "Checks for a plugins folder, often used for .asi script loaders.",
-  relativePath: "plugins",
-  type: "directory",
-  severity: "high",
-};
