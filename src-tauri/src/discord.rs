@@ -1,5 +1,5 @@
 use serde::Deserialize;
-use serde_json::json;
+use serde_json::{json, Value};
 
 #[derive(Debug, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -24,7 +24,7 @@ pub struct DiscordReport {
     pub results: Vec<DiscordResultItem>,
 }
 
-const DESCRIPTION_LIMIT: usize = 4096;
+const FIELD_LIMIT: usize = 1024;
 
 pub fn send_scan_report(report: DiscordReport) -> Result<(), String> {
     let webhook = report.webhook_url.trim().to_string();
@@ -37,28 +37,33 @@ pub fn send_scan_report(report: DiscordReport) -> Result<(), String> {
         return Err("A name is required before sending to Discord.".to_string());
     }
 
-    let has_issue = report.detected > 0 || report.errors > 0;
-    let (title, color, ping) = if has_issue {
-        (
-            "ADA FILE",
+    let (title, description, color) = match report.overall_status.as_str() {
+        "DETECTED" => (
+            "Ada file mencurigakan",
+            format!("Scan **{player_name}** menemukan file yang tidak seharusnya ada."),
             0xEF_44_44,
-            format!("**{player_name}** ada file yang dicurigai."),
-        )
-    } else {
-        (
-            "AMAN",
+        ),
+        "WARNING" => (
+            "Ada peringatan",
+            format!("Scan **{player_name}** selesai dengan peringatan."),
+            0xEA_B3_08,
+        ),
+        _ => (
+            "Tidak ada file mencurigakan",
+            format!("Scan **{player_name}** bersih."),
             0x22_C5_5E,
-            format!("**{player_name}** aman, tidak ada file yang dicurigai."),
-        )
+        ),
     };
 
     let payload = json!({
         "username": "RAGE File Scanner",
-        "content": ping,
         "embeds": [{
+            "author": { "name": "RAGE File Scanner" },
             "title": title,
-            "description": build_description(&report, &player_name, has_issue),
-            "color": color
+            "description": description,
+            "color": color,
+            "fields": build_fields(&report, &player_name),
+            "footer": { "text": "Scan read-only · file tidak diubah" }
         }]
     });
 
@@ -70,58 +75,115 @@ pub fn send_scan_report(report: DiscordReport) -> Result<(), String> {
     Ok(())
 }
 
-fn build_description(report: &DiscordReport, player_name: &str, has_issue: bool) -> String {
-    let mut lines = vec![
-        format!("Nama: **{player_name}**"),
-        format!("Folder FiveM: {}", report.five_m_path),
-        String::new(),
+fn build_fields(report: &DiscordReport, player_name: &str) -> Vec<Value> {
+    let mut fields = vec![
+        field("Nama karakter", player_name, true),
+        field(
+            "Hasil",
+            &format!("{} ketemu · {} aman", report.detected, report.not_detected),
+            true,
+        ),
+        field(
+            "Lokasi FiveM",
+            &format!("```\n{}\n```", report.five_m_path),
+            false,
+        ),
     ];
 
-    if has_issue {
-        let mut found: Vec<&DiscordResultItem> = report
-            .results
-            .iter()
-            .filter(|item| item.status != "NOT_FOUND")
-            .collect();
-        found.sort_by(|left, right| left.name.cmp(&right.name));
-
-        lines.push(format!("File yang ketemu ({}):", found.len()));
-        for (index, item) in found.iter().enumerate() {
-            lines.push(format!("{}. {}", index + 1, format_found_name(item)));
-        }
-    } else {
-        lines.push("Tidak ada file yang dicari.".to_string());
+    if report.errors > 0 {
+        fields.push(field("Error", &report.errors.to_string(), true));
     }
 
-    let clean: Vec<&str> = report
+    let found = format_found_list(report);
+    fields.push(field(
+        if found.is_empty() {
+            "File yang ketemu".to_string()
+        } else {
+            format!("File yang ketemu ({})", report.detected)
+        },
+        if found.is_empty() {
+            "Tidak ada."
+        } else {
+            found.as_str()
+        },
+        false,
+    ));
+
+    let clean = format_clean_list(report);
+    if !clean.is_empty() {
+        fields.push(field(
+            format!("Tidak ketemu ({})", report.not_detected),
+            &clean,
+            false,
+        ));
+    }
+
+    fields
+}
+
+fn format_found_list(report: &DiscordReport) -> String {
+    let mut items: Vec<&DiscordResultItem> = report
+        .results
+        .iter()
+        .filter(|item| item.status != "NOT_FOUND")
+        .collect();
+    items.sort_by(|left, right| left.name.cmp(&right.name));
+
+    if items.is_empty() {
+        return String::new();
+    }
+
+    let lines: Vec<String> = items
+        .iter()
+        .enumerate()
+        .map(|(index, item)| format_found_line(index + 1, item))
+        .collect();
+
+    truncate(&lines.join("\n"), FIELD_LIMIT)
+}
+
+fn format_found_line(number: usize, item: &DiscordResultItem) -> String {
+    if item.status == "ERROR" {
+        return format!("`{number}.` {} — gagal dibaca", item.name);
+    }
+
+    if item.found_files.is_empty() {
+        return format!("`{number}.` {}", item.name);
+    }
+
+    let extra = item.found_files.len().saturating_sub(1);
+    if extra == 0 {
+        format!("`{number}.` {} — {}", item.name, item.found_files[0])
+    } else {
+        format!(
+            "`{number}.` {} — {} (+{} file lain)",
+            item.name, item.found_files[0], extra
+        )
+    }
+}
+
+fn format_clean_list(report: &DiscordReport) -> String {
+    let names: Vec<&str> = report
         .results
         .iter()
         .filter(|item| item.status == "NOT_FOUND")
         .map(|item| item.name.as_str())
         .collect();
-    if !clean.is_empty() {
-        lines.push(String::new());
-        lines.push(format!("Tidak ketemu: {}", clean.join(", ")));
+
+    if names.is_empty() {
+        return String::new();
     }
 
-    truncate(&lines.join("\n"), DESCRIPTION_LIMIT)
+    truncate(&names.join(" · "), FIELD_LIMIT)
 }
 
-fn format_found_name(item: &DiscordResultItem) -> String {
-    if item.status == "ERROR" {
-        return format!("{} (gagal dibaca)", item.name);
-    }
-
-    if item.found_files.is_empty() {
-        return item.name.clone();
-    }
-
-    let extra = item.found_files.len().saturating_sub(1);
-    if extra == 0 {
-        format!("{} ({})", item.name, item.found_files[0])
-    } else {
-        format!("{} ({}, +{} file lain)", item.name, item.found_files[0], extra)
-    }
+fn field(name: impl Into<String>, value: &str, inline: bool) -> Value {
+    let text = if value.trim().is_empty() { "—" } else { value };
+    json!({
+        "name": name.into(),
+        "value": truncate(text, FIELD_LIMIT),
+        "inline": inline
+    })
 }
 
 fn truncate(value: &str, max: usize) -> String {
