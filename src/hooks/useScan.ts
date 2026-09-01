@@ -33,15 +33,10 @@ export function useScan() {
   const [pathSource, setPathSource] = useState<"auto" | "manual" | null>(null);
   const [fiveMRunning, setFiveMRunning] = useState(false);
   const settingsRef = useRef(settings);
-  const selectedPathRef = useRef("");
-  const startScanRef = useRef<(pathOverride?: string) => Promise<ScanSummary | null>>(
-    async () => null,
-  );
-  const applyPathRef = useRef<(path: string, source?: "auto" | "manual") => Promise<void>>(
-    async () => undefined,
-  );
+  const applyPathRef = useRef<
+    (path: string, source?: "auto" | "manual", options?: { scan?: boolean }) => Promise<void>
+  >(async () => undefined);
   settingsRef.current = settings;
-  selectedPathRef.current = selectedPath;
 
   const startScan = useCallback(
     async (pathOverride?: string): Promise<ScanSummary | null> => {
@@ -90,10 +85,13 @@ export function useScan() {
     },
     [addEntry, selectedPath],
   );
-  startScanRef.current = startScan;
 
   const applyPath = useCallback(
-    async (path: string, source: "auto" | "manual" = "manual"): Promise<void> => {
+    async (
+      path: string,
+      source: "auto" | "manual" = "manual",
+      options?: { scan?: boolean },
+    ): Promise<void> => {
       setSelectedPath(path);
       saveLastPath(path);
       setError(null);
@@ -120,7 +118,8 @@ export function useScan() {
           setValidation(nextValidation);
         }
 
-        if (settingsRef.current.autoScan) {
+        const shouldScan = options?.scan ?? settingsRef.current.autoScan;
+        if (shouldScan) {
           await startScan(resolvedPath);
         }
       } catch (caught) {
@@ -181,27 +180,19 @@ export function useScan() {
           setFiveMRunning(event.payload.running);
         }
       }),
-      listen("fivem-launched", () => {
-        if (!settingsRef.current.scanWhenFiveMStarts) {
-          return;
-        }
-
+      listen<{ installPath: string | null }>("fivem-launched", (event) => {
         void (async () => {
-          let path = selectedPathRef.current.trim();
-          if (!path) {
-            path = (await detectFiveMPath()) ?? loadLastPath();
-            if (path) {
-              setSelectedPath(path);
-              saveLastPath(path);
-            }
-          }
+          const launchedPath = event.payload.installPath?.trim() ?? "";
+          const path = launchedPath || (await detectFiveMPath()) || loadLastPath();
 
           if (!path) {
             setError("FiveM started, but the installation folder was not found.");
             return;
           }
 
-          await startScanRef.current(path);
+          await applyPathRef.current(path, "auto", {
+            scan: settingsRef.current.scanWhenFiveMStarts,
+          });
         })();
       }),
     ];

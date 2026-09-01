@@ -35,7 +35,7 @@ export function ValidationWarning({
                 size="sm"
                 onClick={() => onUseSuggested(validation.suggestedPath ?? "")}
               >
-                Use FiveM.app
+                Use detected folder
               </Button>
             ) : null}
             <Button type="button" size="sm" variant="outline" onClick={onChooseAnother}>

@@ -53,7 +53,7 @@ export function SettingsPage(): ReactElement {
         <CardHeader>
           <CardTitle>Automatic Scan</CardTitle>
           <CardDescription>
-            Detect the FiveM.app folder and scan it without choosing files manually.
+            Detect the FiveM data folder and scan it without choosing files manually.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex items-center justify-between">
@@ -73,7 +73,8 @@ export function SettingsPage(): ReactElement {
           <div>
             <p className="text-sm font-medium">Scan when FiveM starts</p>
             <p className="text-sm text-muted-foreground">
-              Keep this app open. When FiveM launches, a scan runs automatically.
+            Keep this app open. When FiveM launches, the folder path switches to that FiveM
+            installation and a scan runs automatically.
             </p>
           </div>
           <Switch

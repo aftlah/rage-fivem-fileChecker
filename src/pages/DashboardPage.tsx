@@ -35,8 +35,8 @@ export function DashboardPage(): ReactElement {
         <div className="flex items-center justify-between gap-3">
           <p className="text-sm text-muted-foreground">
             {scan.fiveMRunning
-              ? "FiveM is running. A scan was triggered when it started."
-              : "Watching for FiveM. Open FiveM to scan automatically."}
+              ? "FiveM is running. The path was updated to this FiveM installation."
+              : "Watching for FiveM. Opening FiveM will set the path automatically."}
           </p>
           <Badge variant={scan.fiveMRunning ? "info" : "outline"}>
             {scan.fiveMRunning ? "FiveM running" : "Waiting for FiveM"}
@@ -107,7 +107,7 @@ export function DashboardPage(): ReactElement {
             <p className="text-sm text-muted-foreground">
               {scan.selectedPath
                 ? "Press Start Scan if automatic scanning is turned off."
-                : "FiveM was not found automatically. Use Browse to select FiveM.app."}
+                : "FiveM was not found automatically. Use Browse to select FiveM Application Data or FiveM.app."}
             </p>
           </div>
         ) : null}
