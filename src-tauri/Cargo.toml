@@ -2,7 +2,7 @@
 name = "rage-file-checker"
 version = "1.0.0"
 description = "Read-only scanner for FiveM installation files and folders"
-authors = ["ALTAF"]
+authors = ["Aftlah"]
 edition = "2021"
 
 [lib]
