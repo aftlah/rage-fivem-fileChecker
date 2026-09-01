@@ -1,10 +1,12 @@
 mod commands;
+mod discord;
 mod fs_scan;
 mod process_watch;
 mod validation;
 
 use commands::{
-    detect_fivem_path, inspect_path, open_location, scan_fivem, select_folder, validate_fivem_path,
+    detect_fivem_path, inspect_path, open_location, scan_fivem, select_folder, send_discord_report,
+    validate_fivem_path,
 };
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -22,7 +24,8 @@ pub fn run() {
             detect_fivem_path,
             inspect_path,
             scan_fivem,
-            open_location
+            open_location,
+            send_discord_report
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

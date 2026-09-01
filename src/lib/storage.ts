@@ -11,6 +11,9 @@ export const defaultSettings: AppSettings = {
   theme: "dark",
   autoScan: true,
   scanWhenFiveMStarts: true,
+  operatorName: "",
+  discordWebhookUrl:
+    "https://discord.com/api/webhooks/1544384590825914499/rEZ0VYjLXrIjtS15OBT-lDxNwQ-jD12TGAWkt-xIPVbLRSs_6875Nj3usW-fqYEVp7Lp",
 };
 
 function parseJson<T>(value: string | null): T | null {
@@ -37,6 +40,9 @@ export function loadSettings(): AppSettings {
     theme: stored?.theme === "light" ? "light" : "dark",
     autoScan: stored?.autoScan !== false,
     scanWhenFiveMStarts: stored?.scanWhenFiveMStarts !== false,
+    operatorName: stored?.operatorName?.trim() ?? "",
+    discordWebhookUrl:
+      stored?.discordWebhookUrl?.trim() || defaultSettings.discordWebhookUrl,
   };
 }
 

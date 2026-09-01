@@ -9,16 +9,18 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useScanContext } from "@/hooks/useScanContext";
+import { useSettings } from "@/hooks/useSettings";
 
 export function DashboardPage(): ReactElement {
   const scan = useScanContext();
+  const { settings } = useSettings();
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">RAGE FiveM File Checker</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Keep this app open. When FiveM starts, a scan runs automatically.
+          Scanning as {settings.operatorName}. Keep this app open. When FiveM starts, a scan is sent to Discord.
         </p>
       </div>
 
@@ -55,6 +57,24 @@ export function DashboardPage(): ReactElement {
       {scan.error ? (
         <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
           {scan.error}
+        </div>
+      ) : null}
+
+      {scan.discordStatus === "sending" ? (
+        <div className="rounded-xl border border-info/30 bg-info/10 px-4 py-3 text-sm text-info">
+          Sending scan result to Discord...
+        </div>
+      ) : null}
+
+      {scan.discordStatus === "sent" ? (
+        <div className="rounded-xl border border-success/30 bg-success/10 px-4 py-3 text-sm text-success">
+          Scan result sent to Discord.
+        </div>
+      ) : null}
+
+      {scan.discordStatus === "error" && scan.discordError ? (
+        <div className="rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning">
+          Scan finished, but Discord could not be notified: {scan.discordError}
         </div>
       ) : null}
 

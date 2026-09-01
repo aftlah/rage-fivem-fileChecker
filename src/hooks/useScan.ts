@@ -2,7 +2,7 @@ import { listen } from "@tauri-apps/api/event";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { summarizeResults } from "@/lib/format";
 import { loadLastPath, saveLastPath } from "@/lib/storage";
-import { detectFiveMPath, selectFolder, validateFiveMPath } from "@/lib/tauri";
+import { detectFiveMPath, selectFolder, sendDiscordReport, validateFiveMPath } from "@/lib/tauri";
 import { getErrorMessage } from "@/lib/utils";
 import { getEnabledRules } from "@/scanner/rules";
 import { runScan } from "@/scanner/scanner";
@@ -11,6 +11,7 @@ import type {
   ScanResult,
   ScanSummary,
   ValidationResult,
+  DiscordSendStatus,
 } from "@/scanner/types";
 import { useHistory } from "./useHistory";
 import { useSettings } from "./useSettings";
@@ -32,7 +33,10 @@ export function useScan() {
   const [hasScanned, setHasScanned] = useState(false);
   const [pathSource, setPathSource] = useState<"auto" | "manual" | null>(null);
   const [fiveMRunning, setFiveMRunning] = useState(false);
+  const [discordStatus, setDiscordStatus] = useState<DiscordSendStatus>("idle");
+  const [discordError, setDiscordError] = useState<string | null>(null);
   const settingsRef = useRef(settings);
+  const hadNameRef = useRef(settings.operatorName.trim().length > 0);
   const applyPathRef = useRef<
     (path: string, source?: "auto" | "manual", options?: { scan?: boolean }) => Promise<void>
   >(async () => undefined);
@@ -43,6 +47,12 @@ export function useScan() {
       const pathToScan = (pathOverride ?? selectedPath).trim();
       if (!pathToScan) {
         setError("Choose a FiveM installation folder first.");
+        return null;
+      }
+
+      const operatorName = settingsRef.current.operatorName.trim();
+      if (!operatorName) {
+        setError("Enter your name first.");
         return null;
       }
 
@@ -73,6 +83,35 @@ export function useScan() {
         setSummary(scanSummary);
         setHasScanned(true);
         addEntry(pathToScan, scanSummary);
+
+        const webhookUrl = settingsRef.current.discordWebhookUrl.trim();
+        if (webhookUrl) {
+          setDiscordStatus("sending");
+          setDiscordError(null);
+          try {
+            await sendDiscordReport({
+              webhookUrl,
+              playerName: operatorName,
+              fiveMPath: pathToScan,
+              overallStatus: scanSummary.overallStatus,
+              detected: scanSummary.detected,
+              notDetected: scanSummary.notDetected,
+              errors: scanSummary.errors,
+              results: scanResults.map((result) => ({
+                name: result.name,
+                status: result.status,
+                relativePath: result.relativePath,
+              })),
+            });
+            setDiscordStatus("sent");
+          } catch (discordCaught) {
+            setDiscordStatus("error");
+            setDiscordError(getErrorMessage(discordCaught));
+          }
+        } else {
+          setDiscordStatus("idle");
+        }
+
         return scanSummary;
       } catch (caught) {
         setError(getErrorMessage(caught));
@@ -118,7 +157,9 @@ export function useScan() {
           setValidation(nextValidation);
         }
 
-        const shouldScan = options?.scan ?? settingsRef.current.autoScan;
+        const shouldScan =
+          (options?.scan ?? settingsRef.current.autoScan) &&
+          settingsRef.current.operatorName.trim().length > 0;
         if (shouldScan) {
           await startScan(resolvedPath);
         }
@@ -205,6 +246,18 @@ export function useScan() {
     };
   }, []);
 
+  useEffect(() => {
+    const hasName = settings.operatorName.trim().length > 0;
+    const justEnteredName = hasName && !hadNameRef.current;
+    hadNameRef.current = hasName;
+
+    if (!justEnteredName || !selectedPath || !settings.autoScan) {
+      return;
+    }
+
+    void startScan(selectedPath);
+  }, [selectedPath, settings.autoScan, settings.operatorName, startScan]);
+
   const browse = useCallback(async () => {
     setIsBrowsing(true);
     setError(null);
@@ -234,6 +287,8 @@ export function useScan() {
     hasScanned,
     pathSource,
     fiveMRunning,
+    discordStatus,
+    discordError,
     browse,
     applyPath,
     startScan,

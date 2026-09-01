@@ -61,9 +61,13 @@ export interface ScanHistoryEntry {
   overallStatus: OverallStatus;
 }
 
+export type DiscordSendStatus = "idle" | "sending" | "sent" | "error";
+
 export interface AppSettings {
   enabledRules: Record<string, boolean>;
   theme: ThemeMode;
   autoScan: boolean;
   scanWhenFiveMStarts: boolean;
+  operatorName: string;
+  discordWebhookUrl: string;
 }

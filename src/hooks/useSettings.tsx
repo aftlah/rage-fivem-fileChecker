@@ -8,6 +8,8 @@ interface SettingsContextValue {
   setTheme: (theme: ThemeMode) => void;
   setAutoScan: (autoScan: boolean) => void;
   setScanWhenFiveMStarts: (enabled: boolean) => void;
+  setOperatorName: (name: string) => void;
+  setDiscordWebhookUrl: (url: string) => void;
   resetSettings: () => void;
 }
 
@@ -60,9 +62,27 @@ export function SettingsProvider({ children }: { children: ReactNode }): ReactEl
     [settings, update],
   );
 
+  const setOperatorName = useCallback(
+    (operatorName: string) => {
+      update({ ...settings, operatorName: operatorName.trim() });
+    },
+    [settings, update],
+  );
+
+  const setDiscordWebhookUrl = useCallback(
+    (discordWebhookUrl: string) => {
+      update({ ...settings, discordWebhookUrl: discordWebhookUrl.trim() });
+    },
+    [settings, update],
+  );
+
   const resetSettings = useCallback(() => {
-    update(defaultSettings);
-  }, [update]);
+    update({
+      ...defaultSettings,
+      operatorName: settings.operatorName,
+      discordWebhookUrl: settings.discordWebhookUrl,
+    });
+  }, [settings.discordWebhookUrl, settings.operatorName, update]);
 
   const value = useMemo(
     () => ({
@@ -71,9 +91,20 @@ export function SettingsProvider({ children }: { children: ReactNode }): ReactEl
       setTheme,
       setAutoScan,
       setScanWhenFiveMStarts,
+      setOperatorName,
+      setDiscordWebhookUrl,
       resetSettings,
     }),
-    [resetSettings, setAutoScan, setRuleEnabled, setScanWhenFiveMStarts, setTheme, settings],
+    [
+      resetSettings,
+      setAutoScan,
+      setDiscordWebhookUrl,
+      setOperatorName,
+      setRuleEnabled,
+      setScanWhenFiveMStarts,
+      setTheme,
+      settings,
+    ],
   );
 
   return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;

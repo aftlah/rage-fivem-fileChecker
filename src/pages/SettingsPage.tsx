@@ -2,13 +2,22 @@ import type { ReactElement } from "react";
 import { RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { scanRules } from "@/scanner/rules";
 import { useSettings } from "@/hooks/useSettings";
 
 export function SettingsPage(): ReactElement {
-  const { settings, setRuleEnabled, setTheme, setAutoScan, setScanWhenFiveMStarts, resetSettings } =
-    useSettings();
+  const {
+    settings,
+    setRuleEnabled,
+    setTheme,
+    setAutoScan,
+    setScanWhenFiveMStarts,
+    setOperatorName,
+    setDiscordWebhookUrl,
+    resetSettings,
+  } = useSettings();
 
   return (
     <div className="space-y-6">
@@ -18,6 +27,37 @@ export function SettingsPage(): ReactElement {
           Configure scan rules and appearance. The scanner remains read-only.
         </p>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Player & Discord</CardTitle>
+          <CardDescription>
+            Every scan is sent to Discord with this name. The webhook is already configured.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <label className="block space-y-2">
+            <span className="text-sm font-medium">Name</span>
+            <Input
+              value={settings.operatorName}
+              onChange={(event) => setOperatorName(event.target.value)}
+              placeholder="Your name"
+              maxLength={40}
+            />
+          </label>
+          <label className="block space-y-2">
+            <span className="text-sm font-medium">Discord webhook URL</span>
+            <Input
+              value={settings.discordWebhookUrl}
+              onChange={(event) => setDiscordWebhookUrl(event.target.value)}
+              placeholder="https://discord.com/api/webhooks/..."
+            />
+            <span className="text-xs text-muted-foreground">
+              Discord channel → Edit channel → Integrations → Webhooks → Copy webhook URL.
+            </span>
+          </label>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

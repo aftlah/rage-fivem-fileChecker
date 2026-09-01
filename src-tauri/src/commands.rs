@@ -117,3 +117,12 @@ pub fn open_location(app: AppHandle, path: String) -> Result<(), String> {
 
     Ok(())
 }
+
+#[tauri::command]
+pub async fn send_discord_report(
+    report: crate::discord::DiscordReport,
+) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || crate::discord::send_scan_report(report))
+        .await
+        .map_err(|error| format!("Failed to send Discord report: {error}"))?
+}

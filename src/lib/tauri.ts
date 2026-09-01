@@ -20,3 +20,16 @@ export function inspectPath(path: string, rule: ScanRule): Promise<ScanResult> {
 export function openLocation(path: string): Promise<void> {
   return invoke<void>("open_location", { path });
 }
+
+export function sendDiscordReport(report: {
+  webhookUrl: string;
+  playerName: string;
+  fiveMPath: string;
+  overallStatus: string;
+  detected: number;
+  notDetected: number;
+  errors: number;
+  results: Array<{ name: string; status: string; relativePath: string }>;
+}): Promise<void> {
+  return invoke<void>("send_discord_report", { report });
+}
