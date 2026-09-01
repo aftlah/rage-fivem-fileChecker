@@ -60,12 +60,12 @@ pub fn send_scan_report(report: DiscordReport) -> Result<(), String> {
     };
 
     let payload = serde_json::json!({
-        "username": "RAGE FiveM File Checker",
+        "username": "rage-file-checker",
         "embeds": [{
             "title": format!("Scan result: {}", report.overall_status),
             "color": color,
             "fields": [
-                { "name": "Name", "value": player_name, "inline": true },
+                { "name": "name in character", "value": player_name, "inline": true },
                 { "name": "Status", "value": report.overall_status, "inline": true },
                 { "name": "Detected", "value": report.detected.to_string(), "inline": true },
                 { "name": "Not detected", "value": report.not_detected.to_string(), "inline": true },

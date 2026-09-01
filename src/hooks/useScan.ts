@@ -52,7 +52,7 @@ export function useScan() {
 
       const operatorName = settingsRef.current.operatorName.trim();
       if (!operatorName) {
-        setError("Enter your name first.");
+        setError("Enter your name in character first.");
         return null;
       }
 

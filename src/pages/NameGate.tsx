@@ -14,7 +14,7 @@ export function NameGate(): ReactElement {
     event.preventDefault();
     const trimmed = name.trim();
     if (trimmed.length < 2) {
-      setError("Enter a name with at least 2 characters.");
+      setError("Enter a name in character with at least 2 characters.");
       return;
     }
     setOperatorName(trimmed);
@@ -27,9 +27,9 @@ export function NameGate(): ReactElement {
           <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-muted">
             <ScanSearch className="h-5 w-5 text-info" />
           </div>
-          <CardTitle>Enter your name</CardTitle>
+          <CardTitle>name in character</CardTitle>
           <CardDescription>
-            This name is attached to every scan result sent to Discord.
+            This character name is attached to every scan result sent to Discord.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -38,7 +38,7 @@ export function NameGate(): ReactElement {
               autoFocus
               value={name}
               onChange={(event) => setName(event.target.value)}
-              placeholder="Your name"
+              placeholder="name in character"
               maxLength={40}
             />
             {error ? <p className="text-sm text-destructive">{error}</p> : null}

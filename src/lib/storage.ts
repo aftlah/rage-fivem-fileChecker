@@ -1,9 +1,9 @@
 import { scanRules } from "@/scanner/rules";
 import type { AppSettings, ScanHistoryEntry, ThemeMode } from "@/scanner/types";
 
-const SETTINGS_KEY = "rage-fivem-file-checker:settings";
-const HISTORY_KEY = "rage-fivem-file-checker:history";
-const LAST_PATH_KEY = "rage-fivem-file-checker:last-path";
+const SETTINGS_KEY = "rage-file-checker:settings";
+const HISTORY_KEY = "rage-file-checker:history";
+const LAST_PATH_KEY = "rage-file-checker:last-path";
 const MAX_HISTORY = 50;
 
 export const defaultSettings: AppSettings = {

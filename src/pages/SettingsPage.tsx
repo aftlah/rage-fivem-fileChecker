@@ -37,11 +37,11 @@ export function SettingsPage(): ReactElement {
         </CardHeader>
         <CardContent className="space-y-4">
           <label className="block space-y-2">
-            <span className="text-sm font-medium">Name</span>
+            <span className="text-sm font-medium">name in character</span>
             <Input
               value={settings.operatorName}
               onChange={(event) => setOperatorName(event.target.value)}
-              placeholder="Your name"
+              placeholder="name in character"
               maxLength={40}
             />
           </label>
@@ -148,7 +148,7 @@ export function SettingsPage(): ReactElement {
           <CardTitle>About</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
-          <Info label="Application" value="RAGE FiveM File Checker" />
+          <Info label="Application" value="rage-file-checker" />
           <Info label="Version" value="1.0.0" />
           <Info label="Developer" value="Aftlah" />
           <Info label="Mode" value="Read-only filesystem scanner" />

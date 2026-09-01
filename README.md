@@ -1,4 +1,4 @@
-# RAGE FiveM File Checker
+# rage-file-checker
 
 Read-only Windows desktop scanner for FiveM installations. The first release checks whether `citizen/common/data/ai` exists. The app never deletes, modifies, replaces, or executes FiveM files.
 
@@ -30,7 +30,7 @@ npm run tauri build
 
 After a successful build:
 
-- Portable app: `src-tauri/target/release/rage-fivem-file-checker.exe`
+- Portable app: `src-tauri/target/release/rage-file-checker.exe`
 - Installer: `src-tauri/target/release/bundle/nsis/`
 
 ## Adding a scan rule

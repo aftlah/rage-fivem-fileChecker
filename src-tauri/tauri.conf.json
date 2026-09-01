@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "RAGE FiveM File Checker",
+  "productName": "rage-file-checker",
   "version": "1.0.0",
-  "identifier": "com.altaf.rage-fivem-file-checker",
+  "identifier": "com.altaf.rage-file-checker",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "RAGE FiveM File Checker",
+        "title": "rage-file-checker",
         "width": 1180,
         "height": 800,
         "minWidth": 960,

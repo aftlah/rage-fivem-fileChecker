@@ -33,7 +33,7 @@ export function AppLayout({
             <ScanSearch className="h-5 w-5 text-info" />
           </div>
           <div>
-            <p className="text-sm font-semibold">RAGE FiveM File Checker</p>
+            <p className="text-sm font-semibold">rage-file-checker</p>
             <p className="text-xs text-muted-foreground">Scanner for FiveM</p>
           </div>
         </div>
