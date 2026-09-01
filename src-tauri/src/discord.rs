@@ -1,5 +1,5 @@
 use serde::Deserialize;
-use serde_json::{json, Value};
+use serde_json::json;
 
 #[derive(Debug, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -24,8 +24,7 @@ pub struct DiscordReport {
     pub results: Vec<DiscordResultItem>,
 }
 
-const DATA_PREFIX: &str = "citizen/common/data/";
-const FIELD_LIMIT: usize = 1024;
+const DESCRIPTION_LIMIT: usize = 4096;
 
 pub fn send_scan_report(report: DiscordReport) -> Result<(), String> {
     let webhook = report.webhook_url.trim().to_string();
@@ -38,29 +37,28 @@ pub fn send_scan_report(report: DiscordReport) -> Result<(), String> {
         return Err("A name is required before sending to Discord.".to_string());
     }
 
-    let (title, color) = match report.overall_status.as_str() {
-        "DETECTED" => ("Flagged files found", 0xEF_44_44),
-        "WARNING" => ("Scan finished with warnings", 0xEA_B3_08),
-        _ => ("No flagged files", 0x22_C5_5E),
-    };
-
-    let description = if report.detected == 0 && report.errors == 0 {
-        format!("**{player_name}** · all checks passed")
+    let has_issue = report.detected > 0 || report.errors > 0;
+    let (title, color, ping) = if has_issue {
+        (
+            "ADA FILE",
+            0xEF_44_44,
+            format!("**{player_name}** ada file yang dicurigai."),
+        )
     } else {
-        format!(
-            "**{player_name}** · {} flagged · {} clean",
-            report.detected, report.not_detected
+        (
+            "AMAN",
+            0x22_C5_5E,
+            format!("**{player_name}** aman, tidak ada file yang dicurigai."),
         )
     };
 
     let payload = json!({
         "username": "RAGE File Scanner",
+        "content": ping,
         "embeds": [{
-            "author": { "name": "RAGE File Scanner" },
             "title": title,
-            "description": description,
-            "color": color,
-            "fields": build_fields(&report, &player_name)
+            "description": build_description(&report, &player_name, has_issue),
+            "color": color
         }]
     });
 
@@ -72,125 +70,68 @@ pub fn send_scan_report(report: DiscordReport) -> Result<(), String> {
     Ok(())
 }
 
-fn build_fields(report: &DiscordReport, player_name: &str) -> Vec<Value> {
-    let mut fields = vec![
-        field("Player", player_name, true),
-        field("Flagged", &report.detected.to_string(), true),
-        field("Clean", &report.not_detected.to_string(), true),
+fn build_description(report: &DiscordReport, player_name: &str, has_issue: bool) -> String {
+    let mut lines = vec![
+        format!("Nama: **{player_name}**"),
+        format!("Folder FiveM: {}", report.five_m_path),
+        String::new(),
     ];
 
-    if report.errors > 0 {
-        fields.push(field("Errors", &report.errors.to_string(), true));
+    if has_issue {
+        let mut found: Vec<&DiscordResultItem> = report
+            .results
+            .iter()
+            .filter(|item| item.status != "NOT_FOUND")
+            .collect();
+        found.sort_by(|left, right| left.name.cmp(&right.name));
+
+        lines.push(format!("File yang ketemu ({}):", found.len()));
+        for (index, item) in found.iter().enumerate() {
+            lines.push(format!("{}. {}", index + 1, format_found_name(item)));
+        }
+    } else {
+        lines.push("Tidak ada file yang dicari.".to_string());
     }
 
-    fields.push(field(
-        "FiveM path",
-        &format!("`{}`", report.five_m_path),
-        false,
-    ));
-
-    let flagged_chunks = flagged_field_values(report);
-    let total = flagged_chunks.len();
-    for (index, value) in flagged_chunks.into_iter().enumerate() {
-        let name = if total <= 1 {
-            "Flagged files".to_string()
-        } else {
-            format!("Flagged files ({}/{})", index + 1, total)
-        };
-        fields.push(field(&name, &value, false));
-    }
-
-    fields
-}
-
-fn field(name: &str, value: &str, inline: bool) -> Value {
-    json!({ "name": name, "value": value, "inline": inline })
-}
-
-fn flagged_field_values(report: &DiscordReport) -> Vec<String> {
-    let mut flagged: Vec<&DiscordResultItem> = report
+    let clean: Vec<&str> = report
         .results
         .iter()
-        .filter(|item| item.status != "NOT_FOUND")
+        .filter(|item| item.status == "NOT_FOUND")
+        .map(|item| item.name.as_str())
         .collect();
-    flagged.sort_by(|left, right| left.status.cmp(&right.status).then(left.name.cmp(&right.name)));
-
-    if flagged.is_empty() {
-        return vec!["All checked files were clean.".to_string()];
+    if !clean.is_empty() {
+        lines.push(String::new());
+        lines.push(format!("Tidak ketemu: {}", clean.join(", ")));
     }
 
-    let blocks: Vec<String> = flagged.iter().map(|item| format_result_item(item)).collect();
-    chunk_blocks(&blocks, FIELD_LIMIT)
+    truncate(&lines.join("\n"), DESCRIPTION_LIMIT)
 }
 
-fn format_result_item(item: &DiscordResultItem) -> String {
-    let path = display_path(&item.relative_path);
-    let mut lines = vec![format!("**{}**\n`{path}`", item.name)];
-
-    if !item.found_files.is_empty() {
-        let preview: Vec<String> = item
-            .found_files
-            .iter()
-            .take(4)
-            .map(|file| format!("`{file}`"))
-            .collect();
-        let extra = item.found_files.len().saturating_sub(preview.len());
-        let mut files = preview.join(" · ");
-        if extra > 0 {
-            files.push_str(&format!(" · +{extra} more"));
-        }
-        lines.push(files);
-    }
-
+fn format_found_name(item: &DiscordResultItem) -> String {
     if item.status == "ERROR" {
-        lines.push("Status: ERROR".to_string());
+        return format!("{} (gagal dibaca)", item.name);
     }
 
-    lines.join("\n")
-}
-
-fn display_path(relative: &str) -> String {
-    let normalized = relative.replace('\\', "/");
-    normalized
-        .strip_prefix(DATA_PREFIX)
-        .unwrap_or(&normalized)
-        .to_string()
-}
-
-fn chunk_blocks(blocks: &[String], max: usize) -> Vec<String> {
-    let mut chunks = Vec::new();
-    let mut current = String::new();
-
-    for block in blocks {
-        let next = if current.is_empty() {
-            block.clone()
-        } else {
-            format!("{current}\n\n{block}")
-        };
-
-        if next.chars().count() > max && !current.is_empty() {
-            chunks.push(current);
-            current = block.clone();
-        } else {
-            current = next;
-        }
+    if item.found_files.is_empty() {
+        return item.name.clone();
     }
 
-    if !current.is_empty() {
-        chunks.push(truncate_field(&current, max));
+    let extra = item.found_files.len().saturating_sub(1);
+    if extra == 0 {
+        format!("{} ({})", item.name, item.found_files[0])
+    } else {
+        format!("{} ({}, +{} file lain)", item.name, item.found_files[0], extra)
     }
-
-    chunks
 }
 
-fn truncate_field(value: &str, max: usize) -> String {
+fn truncate(value: &str, max: usize) -> String {
     if value.chars().count() <= max {
         return value.to_string();
     }
 
-    let keep = max.saturating_sub(14);
+    let keep = max.saturating_sub(1);
     let mut truncated: String = value.chars().take(keep).collect();
-    truncated.push_str("\n…truncated");
+    truncated.push('…');
     truncated
 }
 
@@ -198,17 +139,4 @@ fn is_discord_webhook(url: &str) -> bool {
     url.starts_with("https://discord.com/api/webhooks/")
         || url.starts_with("https://discordapp.com/api/webhooks/")
         || url.starts_with("https://canary.discord.com/api/webhooks/")
-}
-
-#[cfg(test)]
-mod tests {
-    use super::display_path;
-
-    #[test]
-    fn strips_common_data_prefix() {
-        assert_eq!(
-            display_path("citizen/common/data/ai/pedaccuracy.meta"),
-            "ai/pedaccuracy.meta"
-        );
-    }
 }
