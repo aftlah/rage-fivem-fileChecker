@@ -1,4 +1,5 @@
 use serde::Deserialize;
+use serde_json::{json, Value};
 
 #[derive(Debug, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -23,6 +24,9 @@ pub struct DiscordReport {
     pub results: Vec<DiscordResultItem>,
 }
 
+const DATA_PREFIX: &str = "citizen/common/data/";
+const FIELD_LIMIT: usize = 1024;
+
 pub fn send_scan_report(report: DiscordReport) -> Result<(), String> {
     let webhook = report.webhook_url.trim().to_string();
     if !is_discord_webhook(&webhook) {
@@ -34,28 +38,29 @@ pub fn send_scan_report(report: DiscordReport) -> Result<(), String> {
         return Err("A name is required before sending to Discord.".to_string());
     }
 
-    let color = match report.overall_status.as_str() {
-        "DETECTED" => 0xEF_44_44,
-        "WARNING" => 0xEA_B3_08,
-        _ => 0x22_C5_5E,
+    let (title, color) = match report.overall_status.as_str() {
+        "DETECTED" => ("Flagged files found", 0xEF_44_44),
+        "WARNING" => ("Scan finished with warnings", 0xEA_B3_08),
+        _ => ("No flagged files", 0x22_C5_5E),
     };
 
-    let result_lines = format_check_lines(&report);
+    let description = if report.detected == 0 && report.errors == 0 {
+        format!("**{player_name}** · all checks passed")
+    } else {
+        format!(
+            "**{player_name}** · {} flagged · {} clean",
+            report.detected, report.not_detected
+        )
+    };
 
-    let payload = serde_json::json!({
+    let payload = json!({
         "username": "RAGE File Scanner",
         "embeds": [{
-            "title": format!("Scan result: {}", report.overall_status),
+            "author": { "name": "RAGE File Scanner" },
+            "title": title,
+            "description": description,
             "color": color,
-            "fields": [
-                { "name": "name in character", "value": player_name, "inline": true },
-                { "name": "Status", "value": report.overall_status, "inline": true },
-                { "name": "Detected", "value": report.detected.to_string(), "inline": true },
-                { "name": "Not detected", "value": report.not_detected.to_string(), "inline": true },
-                { "name": "Errors", "value": report.errors.to_string(), "inline": true },
-                { "name": "FiveM path", "value": format!("```{}```", report.five_m_path) },
-                { "name": "Checks", "value": result_lines }
-            ]
+            "fields": build_fields(&report, &player_name)
         }]
     });
 
@@ -67,11 +72,42 @@ pub fn send_scan_report(report: DiscordReport) -> Result<(), String> {
     Ok(())
 }
 
-fn format_check_lines(report: &DiscordReport) -> String {
-    if report.results.is_empty() {
-        return "No checks were reported.".to_string();
+fn build_fields(report: &DiscordReport, player_name: &str) -> Vec<Value> {
+    let mut fields = vec![
+        field("Player", player_name, true),
+        field("Flagged", &report.detected.to_string(), true),
+        field("Clean", &report.not_detected.to_string(), true),
+    ];
+
+    if report.errors > 0 {
+        fields.push(field("Errors", &report.errors.to_string(), true));
     }
 
+    fields.push(field(
+        "FiveM path",
+        &format!("`{}`", report.five_m_path),
+        false,
+    ));
+
+    let flagged_chunks = flagged_field_values(report);
+    let total = flagged_chunks.len();
+    for (index, value) in flagged_chunks.into_iter().enumerate() {
+        let name = if total <= 1 {
+            "Flagged files".to_string()
+        } else {
+            format!("Flagged files ({}/{})", index + 1, total)
+        };
+        fields.push(field(&name, &value, false));
+    }
+
+    fields
+}
+
+fn field(name: &str, value: &str, inline: bool) -> Value {
+    json!({ "name": name, "value": value, "inline": inline })
+}
+
+fn flagged_field_values(report: &DiscordReport) -> Vec<String> {
     let mut flagged: Vec<&DiscordResultItem> = report
         .results
         .iter()
@@ -79,46 +115,72 @@ fn format_check_lines(report: &DiscordReport) -> String {
         .collect();
     flagged.sort_by(|left, right| left.status.cmp(&right.status).then(left.name.cmp(&right.name)));
 
-    let mut lines = if flagged.is_empty() {
-        vec!["All checked files were not detected.".to_string()]
-    } else {
-        flagged.iter().map(|item| format_result_item(item)).collect()
-    };
-
-    if report.not_detected > 0 && !flagged.is_empty() {
-        lines.push(format!(
-            "• {} other check(s) not detected.",
-            report.not_detected
-        ));
+    if flagged.is_empty() {
+        return vec!["All checked files were clean.".to_string()];
     }
 
-    truncate_field(&lines.join("\n"), 1024)
+    let blocks: Vec<String> = flagged.iter().map(|item| format_result_item(item)).collect();
+    chunk_blocks(&blocks, FIELD_LIMIT)
 }
 
 fn format_result_item(item: &DiscordResultItem) -> String {
-    let status = if item.status == "NOT_FOUND" {
-        "NOT DETECTED"
-    } else {
-        item.status.as_str()
-    };
+    let path = display_path(&item.relative_path);
+    let mut lines = vec![format!("**{}**\n`{path}`", item.name)];
 
-    let mut line = format!("• **{}**: {status} (`{}`)", item.name, item.relative_path);
     if !item.found_files.is_empty() {
-        let preview: Vec<&str> = item
+        let preview: Vec<String> = item
             .found_files
             .iter()
-            .take(8)
-            .map(String::as_str)
+            .take(4)
+            .map(|file| format!("`{file}`"))
             .collect();
         let extra = item.found_files.len().saturating_sub(preview.len());
-        let files = if extra > 0 {
-            format!("{}; +{extra} more", preview.join(", "))
-        } else {
-            preview.join(", ")
-        };
-        line.push_str(&format!("\n  files: {files}"));
+        let mut files = preview.join(" · ");
+        if extra > 0 {
+            files.push_str(&format!(" · +{extra} more"));
+        }
+        lines.push(files);
     }
-    line
+
+    if item.status == "ERROR" {
+        lines.push("Status: ERROR".to_string());
+    }
+
+    lines.join("\n")
+}
+
+fn display_path(relative: &str) -> String {
+    let normalized = relative.replace('\\', "/");
+    normalized
+        .strip_prefix(DATA_PREFIX)
+        .unwrap_or(&normalized)
+        .to_string()
+}
+
+fn chunk_blocks(blocks: &[String], max: usize) -> Vec<String> {
+    let mut chunks = Vec::new();
+    let mut current = String::new();
+
+    for block in blocks {
+        let next = if current.is_empty() {
+            block.clone()
+        } else {
+            format!("{current}\n\n{block}")
+        };
+
+        if next.chars().count() > max && !current.is_empty() {
+            chunks.push(current);
+            current = block.clone();
+        } else {
+            current = next;
+        }
+    }
+
+    if !current.is_empty() {
+        chunks.push(truncate_field(&current, max));
+    }
+
+    chunks
 }
 
 fn truncate_field(value: &str, max: usize) -> String {
@@ -136,4 +198,17 @@ fn is_discord_webhook(url: &str) -> bool {
     url.starts_with("https://discord.com/api/webhooks/")
         || url.starts_with("https://discordapp.com/api/webhooks/")
         || url.starts_with("https://canary.discord.com/api/webhooks/")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::display_path;
+
+    #[test]
+    fn strips_common_data_prefix() {
+        assert_eq!(
+            display_path("citizen/common/data/ai/pedaccuracy.meta"),
+            "ai/pedaccuracy.meta"
+        );
+    }
 }

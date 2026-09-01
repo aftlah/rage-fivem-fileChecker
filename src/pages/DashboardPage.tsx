@@ -1,5 +1,5 @@
 import type { ReactElement } from "react";
-import { Loader2, Play } from "lucide-react";
+import { CheckCircle2, Loader2, Play } from "lucide-react";
 import { PathSelector } from "@/components/dashboard/PathSelector";
 import { ResultCard } from "@/components/dashboard/ResultCard";
 import { ScanProgressPanel } from "@/components/dashboard/ScanProgressPanel";
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useScanContext } from "@/hooks/useScanContext";
 import { useSettings } from "@/hooks/useSettings";
+import type { ScanResult } from "@/scanner/types";
 
 export function DashboardPage(): ReactElement {
   const scan = useScanContext();
@@ -116,11 +117,7 @@ export function DashboardPage(): ReactElement {
         {scan.hasScanned && scan.summary ? <ScanSummaryPanel summary={scan.summary} /> : null}
 
         {scan.hasScanned && scan.results.length > 0 ? (
-          <div className="grid gap-4">
-            {scan.results.map((result) => (
-              <ResultCard key={result.ruleId} result={result} />
-            ))}
-          </div>
+          <ScanResultList results={scan.results} />
         ) : null}
 
         {!scan.hasScanned && !scan.isScanning && !scan.isDetecting ? (
@@ -133,6 +130,39 @@ export function DashboardPage(): ReactElement {
           </div>
         ) : null}
       </section>
+    </div>
+  );
+}
+
+function ScanResultList({ results }: { results: ScanResult[] }): ReactElement {
+  const flagged = results.filter((result) => result.status !== "NOT_FOUND");
+  const clean = results.filter((result) => result.status === "NOT_FOUND");
+
+  return (
+    <div className="space-y-3">
+      {flagged.length > 0 ? (
+        <div className="grid gap-3">
+          {flagged.map((result) => (
+            <ResultCard key={result.ruleId} result={result} />
+          ))}
+        </div>
+      ) : null}
+
+      {clean.length > 0 ? (
+        <div className="rounded-xl border border-dashed border-border bg-card/60 px-4 py-3">
+          <div className="flex items-start gap-2">
+            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />
+            <div>
+              <p className="text-sm font-medium">
+                {clean.length} check{clean.length === 1 ? "" : "s"} not detected
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {clean.map((result) => result.name).join(" · ")}
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

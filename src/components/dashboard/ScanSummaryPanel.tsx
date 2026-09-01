@@ -11,17 +11,17 @@ const overallCopy = {
   CLEAN: {
     label: "CLEAN",
     variant: "clean" as const,
-    description: "No high-severity items were detected.",
+    description: "No flagged files were found.",
   },
   DETECTED: {
     label: "DETECTED",
     variant: "detected" as const,
-    description: "At least one high-severity item was found.",
+    description: "Flagged client files were found.",
   },
   WARNING: {
     label: "WARNING",
     variant: "warning" as const,
-    description: "The scan finished with warnings or non-critical detections.",
+    description: "The scan finished with warnings.",
   },
 };
 
@@ -31,22 +31,24 @@ export function ScanSummaryPanel({
   const overall = overallCopy[summary.overallStatus];
 
   return (
-    <div className="grid gap-4 md:grid-cols-5">
-      <StatCard label="Total Checks" value={summary.totalChecks} />
-      <StatCard label="Detected" value={summary.detected} tone="detected" />
-      <StatCard label="Not Detected" value={summary.notDetected} tone="clean" />
-      <StatCard label="Errors" value={summary.errors} tone="warning" />
-      <Card>
-        <CardContent className="p-5">
-          <p className="text-xs uppercase tracking-wide text-muted-foreground">
-            Overall Status
-          </p>
-          <div className="mt-3">
-            <Badge variant={overall.variant}>{overall.label}</Badge>
+    <div className="space-y-3">
+      <Card className="border-border">
+        <CardContent className="flex items-center justify-between gap-4 p-4">
+          <div>
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">
+              Overall status
+            </p>
+            <p className="mt-1 text-sm text-muted-foreground">{overall.description}</p>
           </div>
-          <p className="mt-3 text-xs text-muted-foreground">{overall.description}</p>
+          <Badge variant={overall.variant}>{overall.label}</Badge>
         </CardContent>
       </Card>
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <StatCard label="Checks" value={summary.totalChecks} />
+        <StatCard label="Flagged" value={summary.detected} tone="detected" />
+        <StatCard label="Clean" value={summary.notDetected} tone="clean" />
+        <StatCard label="Errors" value={summary.errors} tone="warning" />
+      </div>
     </div>
   );
 }
@@ -71,9 +73,9 @@ function StatCard({
 
   return (
     <Card>
-      <CardContent className="p-5">
+      <CardContent className="p-4">
         <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
-        <p className={`mt-2 text-2xl font-semibold ${valueClass}`}>{value}</p>
+        <p className={`mt-1 text-2xl font-semibold ${valueClass}`}>{value}</p>
       </CardContent>
     </Card>
   );
