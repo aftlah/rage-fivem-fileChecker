@@ -33,8 +33,8 @@ export function loadSettings(): AppSettings {
   return {
     enabledRules: defaultSettings.enabledRules,
     theme: stored?.theme === "light" ? "light" : "dark",
-    autoScan: stored?.autoScan !== false,
-    scanWhenFiveMStarts: stored?.scanWhenFiveMStarts !== false,
+    autoScan: defaultSettings.autoScan,
+    scanWhenFiveMStarts: defaultSettings.scanWhenFiveMStarts,
     operatorName: stored?.operatorName?.trim() ?? "",
     discordWebhookUrl: defaultSettings.discordWebhookUrl,
   };
@@ -44,9 +44,8 @@ export function saveSettings(settings: AppSettings): void {
   localStorage.setItem(
     SETTINGS_KEY,
     JSON.stringify({
-      ...settings,
-      enabledRules: defaultSettings.enabledRules,
-      discordWebhookUrl: defaultSettings.discordWebhookUrl,
+      theme: settings.theme,
+      operatorName: settings.operatorName,
     }),
   );
 }

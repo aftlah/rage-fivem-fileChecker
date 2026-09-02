@@ -2,6 +2,11 @@ import { listen } from "@tauri-apps/api/event";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { summarizeResults } from "@/lib/format";
 import { loadLastPath, saveLastPath, defaultSettings } from "@/lib/storage";
+import {
+  formatCooldownRemaining,
+  getScanCooldownRemainingMs,
+  markScanCompleted,
+} from "@/lib/scanCooldown";
 import { detectFiveMPath, selectFolder, sendDiscordReport, validateFiveMPath } from "@/lib/tauri";
 import { getErrorMessage } from "@/lib/utils";
 import { scanRules } from "@/scanner/rules";
@@ -35,6 +40,9 @@ export function useScan() {
   const [fiveMRunning, setFiveMRunning] = useState(false);
   const [discordStatus, setDiscordStatus] = useState<DiscordSendStatus>("idle");
   const [discordError, setDiscordError] = useState<string | null>(null);
+  const [cooldownRemainingMs, setCooldownRemainingMs] = useState(() =>
+    getScanCooldownRemainingMs(),
+  );
   const settingsRef = useRef(settings);
   const hadNameRef = useRef(settings.operatorName.trim().length > 0);
   const applyPathRef = useRef<
@@ -42,8 +50,21 @@ export function useScan() {
   >(async () => undefined);
   settingsRef.current = settings;
 
+  useEffect(() => {
+    const tick = (): void => {
+      setCooldownRemainingMs(getScanCooldownRemainingMs());
+    };
+
+    tick();
+    const intervalId = window.setInterval(tick, 1000);
+    return () => window.clearInterval(intervalId);
+  }, [isScanning]);
+
   const startScan = useCallback(
-    async (pathOverride?: string): Promise<ScanSummary | null> => {
+    async (
+      pathOverride?: string,
+      options?: { silent?: boolean },
+    ): Promise<ScanSummary | null> => {
       const pathToScan = (pathOverride ?? selectedPath).trim();
       if (!pathToScan) {
         setError("Choose a FiveM installation folder first.");
@@ -57,6 +78,17 @@ export function useScan() {
       }
 
       const rules = scanRules;
+
+      const cooldownRemaining = getScanCooldownRemainingMs();
+      if (cooldownRemaining > 0) {
+        setCooldownRemainingMs(cooldownRemaining);
+        if (!options?.silent) {
+          setError(
+            `Tunggu ${formatCooldownRemaining(cooldownRemaining)} sebelum scan lagi.`,
+          );
+        }
+        return null;
+      }
 
       if (scanInFlight) {
         return null;
@@ -79,6 +111,8 @@ export function useScan() {
         setSummary(scanSummary);
         setHasScanned(true);
         addEntry(pathToScan, scanSummary);
+        markScanCompleted();
+        setCooldownRemainingMs(getScanCooldownRemainingMs());
 
         const webhookUrl = defaultSettings.discordWebhookUrl.trim();
         if (webhookUrl) {
@@ -158,7 +192,7 @@ export function useScan() {
           (options?.scan ?? settingsRef.current.autoScan) &&
           settingsRef.current.operatorName.trim().length > 0;
         if (shouldScan) {
-          await startScan(resolvedPath);
+          await startScan(resolvedPath, { silent: true });
         }
       } catch (caught) {
         setValidation(null);
@@ -252,7 +286,7 @@ export function useScan() {
       return;
     }
 
-    void startScan(selectedPath);
+    void startScan(selectedPath, { silent: true });
   }, [selectedPath, settings.autoScan, settings.operatorName, startScan]);
 
   const browse = useCallback(async () => {
@@ -286,6 +320,7 @@ export function useScan() {
     fiveMRunning,
     discordStatus,
     discordError,
+    cooldownRemainingMs,
     browse,
     applyPath,
     startScan,

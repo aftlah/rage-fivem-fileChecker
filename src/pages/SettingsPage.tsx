@@ -1,26 +1,20 @@
-import { useEffect, useState, type ReactElement } from "react";
+import type { ReactElement } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { scanRules } from "@/scanner/rules";
 import { useSettings } from "@/hooks/useSettings";
-import { isOpenWithFiveMEnabled, setOpenWithFiveMEnabled } from "@/lib/autostart";
 
 export function SettingsPage(): ReactElement {
-  const {
-    settings,
-    setTheme,
-    setAutoScan,
-    setScanWhenFiveMStarts,
-    setOperatorName,
-  } = useSettings();
+  const { settings, setTheme, setOperatorName } = useSettings();
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Update your character name and appearance. Scan checks and the Discord webhook are locked.
+          Only your character name and dark mode can be changed. All scan and automatic scan
+          options are locked.
         </p>
       </div>
 
@@ -32,7 +26,7 @@ export function SettingsPage(): ReactElement {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <label className="block space-y-2">
+          <label className="block cursor-text space-y-2">
             <span className="text-sm font-medium">name in character</span>
             <Input
               value={settings.operatorName}
@@ -78,7 +72,7 @@ export function SettingsPage(): ReactElement {
         <CardHeader>
           <CardTitle>Automatic Scan</CardTitle>
           <CardDescription>
-            Detect the FiveM data folder and scan it without choosing files manually.
+            Automatic scan behavior is always enabled and cannot be changed.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex items-center justify-between">
@@ -88,11 +82,7 @@ export function SettingsPage(): ReactElement {
               Run a scan when the app opens and after a folder is selected.
             </p>
           </div>
-          <Switch
-            checked={settings.autoScan}
-            onCheckedChange={setAutoScan}
-            aria-label="Toggle automatic scan"
-          />
+          <LockedSwitch checked aria-label="Scan automatically locked on" />
         </CardContent>
         <CardContent className="flex items-center justify-between border-t border-border">
           <div>
@@ -102,13 +92,18 @@ export function SettingsPage(): ReactElement {
               runs automatically.
             </p>
           </div>
-          <Switch
-            checked={settings.scanWhenFiveMStarts}
-            onCheckedChange={setScanWhenFiveMStarts}
-            aria-label="Toggle scan when FiveM starts"
-          />
+          <LockedSwitch checked aria-label="Scan when FiveM starts locked on" />
         </CardContent>
-        <OpenWithFiveMSetting />
+        <CardContent className="flex items-center justify-between border-t border-border">
+          <div>
+            <p className="text-sm font-medium">Open when FiveM starts</p>
+            <p className="text-sm text-muted-foreground">
+              Starts this app in the background with Windows. When FiveM opens, the scanner window
+              appears and a scan can run.
+            </p>
+          </div>
+          <LockedSwitch checked aria-label="Open when FiveM starts locked on" />
+        </CardContent>
       </Card>
 
       <Card>
@@ -144,43 +139,20 @@ export function SettingsPage(): ReactElement {
   );
 }
 
-function OpenWithFiveMSetting(): ReactElement {
-  const [enabled, setEnabled] = useState(false);
-  const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    void isOpenWithFiveMEnabled().then(setEnabled);
-  }, []);
-
-  async function handleChange(next: boolean): Promise<void> {
-    setBusy(true);
-    try {
-      await setOpenWithFiveMEnabled(next);
-      setEnabled(next);
-    } catch {
-      const current = await isOpenWithFiveMEnabled();
-      setEnabled(current);
-    } finally {
-      setBusy(false);
-    }
-  }
-
+function LockedSwitch({
+  checked,
+  "aria-label": ariaLabel,
+}: {
+  checked: boolean;
+  "aria-label": string;
+}): ReactElement {
   return (
-    <CardContent className="flex items-center justify-between border-t border-border">
-      <div>
-        <p className="text-sm font-medium">Open when FiveM starts</p>
-        <p className="text-sm text-muted-foreground">
-          Starts this app in the background with Windows. When FiveM opens, the scanner window
-          appears and a scan can run.
-        </p>
-      </div>
-      <Switch
-        checked={enabled}
-        disabled={busy}
-        onCheckedChange={(checked) => void handleChange(checked)}
-        aria-label="Toggle open when FiveM starts"
-      />
-    </CardContent>
+    <Switch
+      checked={checked}
+      disabled
+      aria-label={ariaLabel}
+      className="opacity-70"
+    />
   );
 }
 

@@ -33,7 +33,7 @@ export function NameGate(): ReactElement {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form className="space-y-4" onSubmit={handleSubmit}>
+          <form className="cursor-text space-y-4" onSubmit={handleSubmit}>
             <Input
               autoFocus
               value={name}

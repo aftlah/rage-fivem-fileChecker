@@ -10,11 +10,13 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useScanContext } from "@/hooks/useScanContext";
 import { useSettings } from "@/hooks/useSettings";
+import { formatCooldownRemaining } from "@/lib/scanCooldown";
 import type { ScanResult } from "@/scanner/types";
 
 export function DashboardPage(): ReactElement {
   const scan = useScanContext();
   const { settings } = useSettings();
+  const onCooldown = scan.cooldownRemainingMs > 0;
 
   return (
     <div className="space-y-6">
@@ -85,14 +87,22 @@ export function DashboardPage(): ReactElement {
           type="button"
           size="lg"
           onClick={() => void scan.startScan()}
-          disabled={scan.isScanning || scan.isDetecting || !scan.selectedPath}
+          disabled={
+            scan.isScanning || scan.isDetecting || !scan.selectedPath || onCooldown
+          }
         >
           {scan.isScanning ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
             <Play className="h-4 w-4" />
           )}
-          {scan.hasScanned ? "Scan Again" : "Start Scan"}
+          {scan.isScanning
+            ? "Scanning..."
+            : onCooldown
+              ? `Tunggu ${formatCooldownRemaining(scan.cooldownRemainingMs)}`
+              : scan.hasScanned
+                ? "Scan Again"
+                : "Start Scan"}
         </Button>
       </div>
 

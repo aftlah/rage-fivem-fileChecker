@@ -16,3 +16,14 @@ export async function setOpenWithFiveMEnabled(enabled: boolean): Promise<void> {
 
   await disable();
 }
+
+/** Ensures Windows autostart stays on; this setting is locked for users. */
+export async function ensureOpenWithFiveMEnabled(): Promise<void> {
+  try {
+    if (!(await isEnabled())) {
+      await enable();
+    }
+  } catch {
+    // Autostart may be unavailable outside the packaged app.
+  }
+}

@@ -1,6 +1,12 @@
 use chrono::Local;
 use serde::Deserialize;
 use serde_json::{json, Value};
+use std::collections::HashMap;
+use std::sync::Mutex;
+use std::time::{Duration, Instant};
+
+const DISCORD_COOLDOWN: Duration = Duration::from_secs(120);
+static LAST_DISCORD_REPORTS: Mutex<Option<HashMap<String, Instant>>> = Mutex::new(None);
 
 #[derive(Debug, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -37,6 +43,8 @@ pub fn send_scan_report(report: DiscordReport) -> Result<(), String> {
     if player_name.is_empty() {
         return Err("A name is required before sending to Discord.".to_string());
     }
+
+    enforce_discord_cooldown(&player_name)?;
 
     let (title, description, color) = match report.overall_status.as_str() {
         "DETECTED" => (
@@ -76,6 +84,7 @@ pub fn send_scan_report(report: DiscordReport) -> Result<(), String> {
         .send_json(payload)
         .map_err(|error| format!("Failed to send Discord report: {error}"))?;
 
+    record_discord_report(&player_name);
     Ok(())
 }
 
@@ -180,6 +189,34 @@ fn format_clean_list(report: &DiscordReport) -> String {
     }
 
     truncate(&names.join(" · "), FIELD_LIMIT)
+}
+
+fn enforce_discord_cooldown(player_name: &str) -> Result<(), String> {
+    let mut guard = LAST_DISCORD_REPORTS
+        .lock()
+        .map_err(|_| "Discord cooldown check failed.".to_string())?;
+
+    let reports = guard.get_or_insert_with(HashMap::new);
+
+    if let Some(last_sent) = reports.get(player_name) {
+        let elapsed = Instant::now().duration_since(*last_sent);
+        if elapsed < DISCORD_COOLDOWN {
+            let remaining = DISCORD_COOLDOWN - elapsed;
+            let seconds = remaining.as_secs().max(1);
+            return Err(format!(
+                "Scan terlalu cepat. Tunggu {seconds} detik sebelum kirim lagi."
+            ));
+        }
+    }
+
+    Ok(())
+}
+
+fn record_discord_report(player_name: &str) {
+    if let Ok(mut guard) = LAST_DISCORD_REPORTS.lock() {
+        let reports = guard.get_or_insert_with(HashMap::new);
+        reports.insert(player_name.to_string(), Instant::now());
+    }
 }
 
 fn scan_timestamp_iso() -> String {
