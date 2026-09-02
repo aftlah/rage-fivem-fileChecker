@@ -7,7 +7,7 @@ import {
   getScanCooldownRemainingMs,
   markScanCompleted,
 } from "@/lib/scanCooldown";
-import { detectFiveMPath, getFiveMStatus, hideMainWindow, selectFolder, sendDiscordReport, validateFiveMPath } from "@/lib/tauri";
+import { detectFiveMPath, getFiveMStatus, hideMainWindow, scheduleWatchRestart, selectFolder, sendDiscordReport, validateFiveMPath } from "@/lib/tauri";
 import { getErrorMessage } from "@/lib/utils";
 import { scanRules } from "@/scanner/rules";
 import { runScan } from "@/scanner/scanner";
@@ -49,7 +49,7 @@ export function useScan() {
     (
       path: string,
       source?: "auto" | "manual",
-      options?: { scan?: boolean; hideAfter?: boolean },
+      options?: { scan?: boolean; hideAfter?: boolean; fromFiveM?: boolean },
     ) => Promise<void>
   >(async () => undefined);
   settingsRef.current = settings;
@@ -67,7 +67,7 @@ export function useScan() {
   const startScan = useCallback(
     async (
       pathOverride?: string,
-      options?: { silent?: boolean; hideAfter?: boolean },
+      options?: { silent?: boolean; hideAfter?: boolean; fromFiveM?: boolean },
     ): Promise<ScanSummary | null> => {
       const pathToScan = (pathOverride ?? selectedPath).trim();
       if (!pathToScan) {
@@ -108,7 +108,10 @@ export function useScan() {
         ruleName: rules[0].name,
       });
 
+      let scanStarted = false;
+
       try {
+        scanStarted = true;
         const scanResults = await runScan(pathToScan, rules, setProgress);
         const scanSummary = summarizeResults(scanResults);
         setResults(scanResults);
@@ -158,6 +161,9 @@ export function useScan() {
         if (options?.hideAfter) {
           void hideMainWindow();
         }
+        if (options?.fromFiveM && scanStarted) {
+          await scheduleWatchRestart();
+        }
       }
     },
     [addEntry, selectedPath],
@@ -167,7 +173,7 @@ export function useScan() {
     async (
       path: string,
       source: "auto" | "manual" = "manual",
-      options?: { scan?: boolean; hideAfter?: boolean },
+      options?: { scan?: boolean; hideAfter?: boolean; fromFiveM?: boolean },
     ): Promise<void> => {
       setSelectedPath(path);
       saveLastPath(path);
@@ -202,6 +208,7 @@ export function useScan() {
           await startScan(resolvedPath, {
             silent: true,
             hideAfter: options?.hideAfter,
+            fromFiveM: options?.fromFiveM,
           });
         }
       } catch (caught) {
@@ -231,8 +238,7 @@ export function useScan() {
         return;
       }
 
-      await applyPathRef.current(path, "auto", { scan: true });
-      void hideMainWindow();
+      await applyPathRef.current(path, "auto", { scan: true, fromFiveM: true });
     },
     [],
   );
@@ -316,7 +322,7 @@ export function useScan() {
       return;
     }
 
-    void startScan(selectedPath, { silent: true, hideAfter: true });
+    void startScan(selectedPath, { silent: true, hideAfter: true, fromFiveM: true });
   }, [selectedPath, settings.autoScan, settings.operatorName, startScan]);
 
   const browse = useCallback(async () => {

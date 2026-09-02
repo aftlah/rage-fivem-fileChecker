@@ -33,6 +33,10 @@ export function showMainWindow(): Promise<void> {
   return invoke<void>("show_main_window_cmd");
 }
 
+export function scheduleWatchRestart(): Promise<void> {
+  return invoke<void>("schedule_watch_restart");
+}
+
 export function sendDiscordReport(report: {
   webhookUrl: string;
   playerName: string;

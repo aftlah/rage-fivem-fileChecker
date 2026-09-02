@@ -98,8 +98,8 @@ export function SettingsPage(): ReactElement {
           <div>
             <p className="text-sm font-medium">Open when FiveM starts</p>
             <p className="text-sm text-muted-foreground">
-              Starts this app in the background with Windows. When FiveM opens, a scan runs and
-              results are sent to Discord without opening this window.
+              Starts this app in watch mode with Windows. When FiveM opens, a scan runs, results
+              are sent to Discord, then the app closes until FiveM is opened again.
             </p>
           </div>
           <LockedSwitch checked aria-label="Open when FiveM starts locked on" />

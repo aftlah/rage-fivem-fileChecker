@@ -1,5 +1,7 @@
 use std::path::PathBuf;
 
+use std::time::Duration;
+
 use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_opener::OpenerExt;
@@ -151,6 +153,21 @@ pub fn hide_main_window(app: AppHandle) {
 #[tauri::command]
 pub fn show_main_window_cmd(app: AppHandle) {
     crate::process_watch::show_main_window(&app);
+}
+
+#[tauri::command]
+pub fn schedule_watch_restart(app: AppHandle) {
+    let Ok(exe) = std::env::current_exe() else {
+        app.exit(0);
+        return;
+    };
+
+    std::thread::spawn(move || {
+        std::thread::sleep(Duration::from_millis(900));
+        let _ = std::process::Command::new(exe).arg("--watch").spawn();
+    });
+
+    app.exit(0);
 }
 
 #[tauri::command]

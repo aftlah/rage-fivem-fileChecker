@@ -7,30 +7,37 @@ mod validation;
 
 use commands::{
     detect_fivem_path, get_fivem_status, hide_main_window, inspect_path, open_location, scan_fivem,
-    select_folder, send_discord_report, show_main_window_cmd, validate_fivem_path,
+    schedule_watch_restart, select_folder, send_discord_report, show_main_window_cmd,
+    validate_fivem_path,
 };
 use process_watch::show_main_window;
 use tauri_plugin_autostart::MacosLauncher;
+
+pub fn is_watch_mode() -> bool {
+    std::env::args().any(|arg| arg == "--watch" || arg == "--autostart")
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+        .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
+            if args.iter().any(|arg| arg == "--watch") {
+                return;
+            }
             show_main_window(app);
         }))
         .plugin(tauri_plugin_autostart::init(
             MacosLauncher::LaunchAgent,
-            Some(vec!["--autostart".into()]),
+            Some(vec!["--watch".into()]),
         ))
         .setup(|app| {
-            let started_in_background = std::env::args().any(|arg| arg == "--autostart");
             tray::setup(app)?;
             tray::configure_main_window(app.handle());
             process_watch::start(app.handle().clone());
 
-            if !started_in_background {
+            if !is_watch_mode() {
                 show_main_window(app.handle());
             }
 
@@ -46,7 +53,8 @@ pub fn run() {
             send_discord_report,
             hide_main_window,
             show_main_window_cmd,
-            get_fivem_status
+            get_fivem_status,
+            schedule_watch_restart
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
