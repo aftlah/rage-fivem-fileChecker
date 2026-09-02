@@ -1,3 +1,4 @@
+use chrono::Local;
 use serde::Deserialize;
 use serde_json::{json, Value};
 
@@ -55,6 +56,8 @@ pub fn send_scan_report(report: DiscordReport) -> Result<(), String> {
         ),
     };
 
+    let scanned_at = scan_time_wib();
+
     let payload = json!({
         "username": "RAGE File Scanner",
         "embeds": [{
@@ -62,7 +65,8 @@ pub fn send_scan_report(report: DiscordReport) -> Result<(), String> {
             "title": title,
             "description": description,
             "color": color,
-            "fields": build_fields(&report, &player_name),
+            "timestamp": scan_timestamp_iso(),
+            "fields": build_fields(&report, &player_name, &scanned_at),
             "footer": { "text": "Scan read-only · file tidak diubah" }
         }]
     });
@@ -75,9 +79,10 @@ pub fn send_scan_report(report: DiscordReport) -> Result<(), String> {
     Ok(())
 }
 
-fn build_fields(report: &DiscordReport, player_name: &str) -> Vec<Value> {
+fn build_fields(report: &DiscordReport, player_name: &str, scanned_at: &str) -> Vec<Value> {
     let mut fields = vec![
         field("Nama karakter", player_name, true),
+        field("Waktu scan", scanned_at, true),
         field(
             "Hasil",
             &format!("{} ketemu · {} aman", report.detected, report.not_detected),
@@ -175,6 +180,14 @@ fn format_clean_list(report: &DiscordReport) -> String {
     }
 
     truncate(&names.join(" · "), FIELD_LIMIT)
+}
+
+fn scan_timestamp_iso() -> String {
+    Local::now().to_rfc3339()
+}
+
+fn scan_time_wib() -> String {
+    Local::now().format("%d %b %Y, %H:%M WIB").to_string()
 }
 
 fn field(name: impl Into<String>, value: &str, inline: bool) -> Value {
