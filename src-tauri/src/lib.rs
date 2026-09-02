@@ -2,11 +2,12 @@ mod commands;
 mod discord;
 mod fs_scan;
 mod process_watch;
+mod tray;
 mod validation;
 
 use commands::{
-    detect_fivem_path, inspect_path, open_location, scan_fivem, select_folder, send_discord_report,
-    validate_fivem_path,
+    detect_fivem_path, get_fivem_status, hide_main_window, inspect_path, open_location, scan_fivem,
+    select_folder, send_discord_report, show_main_window_cmd, validate_fivem_path,
 };
 use process_watch::show_main_window;
 use tauri_plugin_autostart::MacosLauncher;
@@ -25,9 +26,11 @@ pub fn run() {
         ))
         .setup(|app| {
             let started_in_background = std::env::args().any(|arg| arg == "--autostart");
+            tray::setup(app)?;
+            tray::configure_main_window(app.handle());
             process_watch::start(app.handle().clone());
 
-            if !started_in_background || process_watch::is_fivem_running() {
+            if !started_in_background {
                 show_main_window(app.handle());
             }
 
@@ -40,7 +43,10 @@ pub fn run() {
             inspect_path,
             scan_fivem,
             open_location,
-            send_discord_report
+            send_discord_report,
+            hide_main_window,
+            show_main_window_cmd,
+            get_fivem_status
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -9,6 +9,10 @@ export function detectFiveMPath(): Promise<string | null> {
   return invoke<string | null>("detect_fivem_path");
 }
 
+export function getFiveMStatus(): Promise<{ running: boolean; installPath: string | null }> {
+  return invoke<{ running: boolean; installPath: string | null }>("get_fivem_status");
+}
+
 export function validateFiveMPath(path: string): Promise<ValidationResult> {
   return invoke<ValidationResult>("validate_fivem_path", { path });
 }
@@ -19,6 +23,14 @@ export function inspectPath(path: string, rule: ScanRule): Promise<ScanResult> {
 
 export function openLocation(path: string): Promise<void> {
   return invoke<void>("open_location", { path });
+}
+
+export function hideMainWindow(): Promise<void> {
+  return invoke<void>("hide_main_window");
+}
+
+export function showMainWindow(): Promise<void> {
+  return invoke<void>("show_main_window_cmd");
 }
 
 export function sendDiscordReport(report: {

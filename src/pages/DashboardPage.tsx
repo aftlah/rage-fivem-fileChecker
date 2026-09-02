@@ -23,8 +23,8 @@ export function DashboardPage(): ReactElement {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">RAGE File Scanner</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Scanning as {settings.operatorName}. When FiveM starts, this window can open automatically
-          and send a scan to Discord. Enable that in Settings.
+          Scanning as {settings.operatorName}. The app runs in the background and sends results to
+          Discord automatically when FiveM opens.
         </p>
       </div>
 

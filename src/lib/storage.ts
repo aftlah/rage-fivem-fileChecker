@@ -4,6 +4,7 @@ import type { AppSettings, ScanHistoryEntry, ThemeMode } from "@/scanner/types";
 const SETTINGS_KEY = "rage-file-checker:settings";
 const HISTORY_KEY = "rage-file-checker:history";
 const LAST_PATH_KEY = "rage-file-checker:last-path";
+const SETUP_COMPLETE_KEY = "rage-file-checker:setup-complete";
 const MAX_HISTORY = 50;
 
 export const defaultSettings: AppSettings = {
@@ -64,6 +65,14 @@ export function loadLastPath(): string {
 
 export function saveLastPath(path: string): void {
   localStorage.setItem(LAST_PATH_KEY, path);
+}
+
+export function isSetupComplete(): boolean {
+  return localStorage.getItem(SETUP_COMPLETE_KEY) === "true";
+}
+
+export function markSetupComplete(): void {
+  localStorage.setItem(SETUP_COMPLETE_KEY, "true");
 }
 
 export function applyTheme(theme: ThemeMode): void {

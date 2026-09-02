@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useSettings } from "@/hooks/useSettings";
+import { markSetupComplete } from "@/lib/storage";
 
 export function NameGate(): ReactElement {
   const { setOperatorName } = useSettings();
@@ -18,6 +19,7 @@ export function NameGate(): ReactElement {
       return;
     }
     setOperatorName(trimmed);
+    markSetupComplete();
   }
 
   return (
@@ -29,7 +31,8 @@ export function NameGate(): ReactElement {
           </div>
           <CardTitle>name in character</CardTitle>
           <CardDescription>
-            This character name is attached to every scan result sent to Discord.
+            This character name is attached to every scan result sent to Discord. After setup, the
+            app runs in the background and scans when FiveM opens.
           </CardDescription>
         </CardHeader>
         <CardContent>

@@ -1,10 +1,11 @@
 use std::path::PathBuf;
 
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_opener::OpenerExt;
 
 use crate::fs_scan::{ensure_directory, inspect_rule, ScanProgressDto, ScanResultDto, ScanRuleInput};
+use crate::process_watch;
 use crate::validation::{
     detect_fivem_path as detect_path, validate_fivem_path as validate_path, ValidationResult,
 };
@@ -116,6 +117,40 @@ pub fn open_location(app: AppHandle, path: String) -> Result<(), String> {
         .map_err(|error| format!("Unable to open Windows Explorer: {error}"))?;
 
     Ok(())
+}
+
+#[tauri::command]
+pub fn get_fivem_status() -> FiveMStatusDto {
+    let running = process_watch::is_fivem_running();
+    let install_path = if running {
+        process_watch::resolve_fivem_install_path()
+    } else {
+        None
+    };
+
+    FiveMStatusDto {
+        running,
+        install_path,
+    }
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FiveMStatusDto {
+    pub running: bool,
+    pub install_path: Option<String>,
+}
+
+#[tauri::command]
+pub fn hide_main_window(app: AppHandle) {
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.hide();
+    }
+}
+
+#[tauri::command]
+pub fn show_main_window_cmd(app: AppHandle) {
+    crate::process_watch::show_main_window(&app);
 }
 
 #[tauri::command]

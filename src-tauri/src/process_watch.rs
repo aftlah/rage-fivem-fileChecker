@@ -33,7 +33,8 @@ pub fn start(app: AppHandle) {
             }
 
             if running && !was_running {
-                show_main_window(&app);
+                // Give the frontend a moment to attach event listeners.
+                std::thread::sleep(Duration::from_millis(1500));
                 let _ = app.emit(
                     "fivem-launched",
                     FiveMLaunched {
@@ -57,7 +58,10 @@ pub fn show_main_window(app: &AppHandle) {
 
 fn is_fivem_process_name(name: &str) -> bool {
     let name = name.trim().trim_end_matches(".exe").to_ascii_lowercase();
-    name == "fivem" || name.starts_with("fivem_")
+    name == "fivem"
+        || name.starts_with("fivem_")
+        || name == "citizenfx"
+        || name.starts_with("citizenfx_")
 }
 
 fn app_folder_from_exe(exe: &Path) -> Vec<PathBuf> {
@@ -89,7 +93,17 @@ fn app_folder_from_exe(exe: &Path) -> Vec<PathBuf> {
 
 #[cfg(windows)]
 pub fn is_fivem_running() -> bool {
-    !running_fivem_executables().is_empty()
+    has_fivem_process()
+}
+
+#[cfg(windows)]
+pub fn resolve_fivem_install_path() -> Option<String> {
+    resolve_fivem_app_path()
+}
+
+#[cfg(not(windows))]
+pub fn resolve_fivem_install_path() -> Option<String> {
+    None
 }
 
 #[cfg(windows)]
@@ -111,6 +125,44 @@ fn resolve_fivem_app_path() -> Option<String> {
     }
 
     pick_fivem_data_root(candidates)
+}
+
+#[cfg(windows)]
+fn has_fivem_process() -> bool {
+    use std::mem::{size_of, zeroed};
+    use windows_sys::Win32::Foundation::{CloseHandle, INVALID_HANDLE_VALUE};
+    use windows_sys::Win32::System::Diagnostics::ToolHelp::{
+        CreateToolhelp32Snapshot, Process32FirstW, Process32NextW, PROCESSENTRY32W,
+        TH32CS_SNAPPROCESS,
+    };
+
+    unsafe {
+        let snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+        if snapshot == INVALID_HANDLE_VALUE {
+            return false;
+        }
+
+        let mut entry: PROCESSENTRY32W = zeroed();
+        entry.dwSize = size_of::<PROCESSENTRY32W>() as u32;
+        let mut found = false;
+
+        if Process32FirstW(snapshot, &mut entry) != 0 {
+            loop {
+                let name = wchar_to_string(&entry.szExeFile);
+                if is_fivem_process_name(&name) {
+                    found = true;
+                    break;
+                }
+
+                if Process32NextW(snapshot, &mut entry) == 0 {
+                    break;
+                }
+            }
+        }
+
+        CloseHandle(snapshot);
+        found
+    }
 }
 
 #[cfg(windows)]

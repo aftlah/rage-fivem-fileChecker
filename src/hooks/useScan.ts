@@ -7,7 +7,7 @@ import {
   getScanCooldownRemainingMs,
   markScanCompleted,
 } from "@/lib/scanCooldown";
-import { detectFiveMPath, selectFolder, sendDiscordReport, validateFiveMPath } from "@/lib/tauri";
+import { detectFiveMPath, getFiveMStatus, hideMainWindow, selectFolder, sendDiscordReport, validateFiveMPath } from "@/lib/tauri";
 import { getErrorMessage } from "@/lib/utils";
 import { scanRules } from "@/scanner/rules";
 import { runScan } from "@/scanner/scanner";
@@ -46,7 +46,11 @@ export function useScan() {
   const settingsRef = useRef(settings);
   const hadNameRef = useRef(settings.operatorName.trim().length > 0);
   const applyPathRef = useRef<
-    (path: string, source?: "auto" | "manual", options?: { scan?: boolean }) => Promise<void>
+    (
+      path: string,
+      source?: "auto" | "manual",
+      options?: { scan?: boolean; hideAfter?: boolean },
+    ) => Promise<void>
   >(async () => undefined);
   settingsRef.current = settings;
 
@@ -63,7 +67,7 @@ export function useScan() {
   const startScan = useCallback(
     async (
       pathOverride?: string,
-      options?: { silent?: boolean },
+      options?: { silent?: boolean; hideAfter?: boolean },
     ): Promise<ScanSummary | null> => {
       const pathToScan = (pathOverride ?? selectedPath).trim();
       if (!pathToScan) {
@@ -151,6 +155,9 @@ export function useScan() {
       } finally {
         scanInFlight = false;
         setIsScanning(false);
+        if (options?.hideAfter) {
+          void hideMainWindow();
+        }
       }
     },
     [addEntry, selectedPath],
@@ -160,7 +167,7 @@ export function useScan() {
     async (
       path: string,
       source: "auto" | "manual" = "manual",
-      options?: { scan?: boolean },
+      options?: { scan?: boolean; hideAfter?: boolean },
     ): Promise<void> => {
       setSelectedPath(path);
       saveLastPath(path);
@@ -192,7 +199,10 @@ export function useScan() {
           (options?.scan ?? settingsRef.current.autoScan) &&
           settingsRef.current.operatorName.trim().length > 0;
         if (shouldScan) {
-          await startScan(resolvedPath, { silent: true });
+          await startScan(resolvedPath, {
+            silent: true,
+            hideAfter: options?.hideAfter,
+          });
         }
       } catch (caught) {
         setValidation(null);
@@ -203,28 +213,79 @@ export function useScan() {
   );
   applyPathRef.current = applyPath;
 
+  const triggerFiveMScan = useCallback(
+    async (installPath?: string | null): Promise<void> => {
+      if (!settingsRef.current.scanWhenFiveMStarts) {
+        return;
+      }
+
+      if (!settingsRef.current.operatorName.trim()) {
+        return;
+      }
+
+      const launchedPath = installPath?.trim() ?? "";
+      const path = launchedPath || (await detectFiveMPath()) || loadLastPath();
+
+      if (!path) {
+        setError("FiveM started, but the installation folder was not found.");
+        return;
+      }
+
+      await applyPathRef.current(path, "auto", { scan: true });
+      void hideMainWindow();
+    },
+    [],
+  );
+  const triggerFiveMScanRef = useRef(triggerFiveMScan);
+  triggerFiveMScanRef.current = triggerFiveMScan;
+
   useEffect(() => {
     let cancelled = false;
+    let unlistenStatus: (() => void) | undefined;
+    let unlistenLaunched: (() => void) | undefined;
 
     async function boot(): Promise<void> {
       setIsDetecting(true);
+
       try {
+        unlistenStatus = await listen<{ running: boolean }>("fivem-status", (event) => {
+          if (!cancelled) {
+            setFiveMRunning(event.payload.running);
+          }
+        });
+        unlistenLaunched = await listen<{ installPath: string | null }>("fivem-launched", (event) => {
+          void triggerFiveMScanRef.current(event.payload.installPath);
+        });
+
         const lastPath = loadLastPath();
         if (lastPath) {
           const lastValidation = await validateFiveMPath(lastPath);
           if (!cancelled && (lastValidation.isValid || lastValidation.suggestedPath)) {
-            await applyPathRef.current(lastPath, "manual");
+            await applyPathRef.current(lastPath, "manual", { scan: false });
+          }
+        } else {
+          const detected = await detectFiveMPath();
+          if (cancelled) {
             return;
+          }
+
+          if (detected) {
+            await applyPathRef.current(detected, "auto", { scan: false });
           }
         }
 
-        const detected = await detectFiveMPath();
         if (cancelled) {
           return;
         }
 
-        if (detected) {
-          await applyPathRef.current(detected, "auto");
+        const status = await getFiveMStatus();
+        if (cancelled) {
+          return;
+        }
+
+        setFiveMRunning(status.running);
+        if (status.running) {
+          await triggerFiveMScanRef.current(status.installPath);
         }
       } catch (caught) {
         if (!cancelled) {
@@ -241,39 +302,8 @@ export function useScan() {
 
     return () => {
       cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    let disposed = false;
-    const pending = [
-      listen<{ running: boolean }>("fivem-status", (event) => {
-        if (!disposed) {
-          setFiveMRunning(event.payload.running);
-        }
-      }),
-      listen<{ installPath: string | null }>("fivem-launched", (event) => {
-        void (async () => {
-          const launchedPath = event.payload.installPath?.trim() ?? "";
-          const path = launchedPath || (await detectFiveMPath()) || loadLastPath();
-
-          if (!path) {
-            setError("FiveM started, but the installation folder was not found.");
-            return;
-          }
-
-          await applyPathRef.current(path, "auto", {
-            scan: settingsRef.current.scanWhenFiveMStarts,
-          });
-        })();
-      }),
-    ];
-
-    return () => {
-      disposed = true;
-      void Promise.all(pending).then((unlisteners) => {
-        unlisteners.forEach((unlisten) => unlisten());
-      });
+      unlistenStatus?.();
+      unlistenLaunched?.();
     };
   }, []);
 
@@ -286,7 +316,7 @@ export function useScan() {
       return;
     }
 
-    void startScan(selectedPath, { silent: true });
+    void startScan(selectedPath, { silent: true, hideAfter: true });
   }, [selectedPath, settings.autoScan, settings.operatorName, startScan]);
 
   const browse = useCallback(async () => {

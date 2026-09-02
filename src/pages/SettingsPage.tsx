@@ -72,7 +72,7 @@ export function SettingsPage(): ReactElement {
         <CardHeader>
           <CardTitle>Automatic Scan</CardTitle>
           <CardDescription>
-            Automatic scan behavior is always enabled and cannot be changed.
+            Automatic scan behavior is always enabled and runs silently in the background.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex items-center justify-between">
@@ -98,8 +98,8 @@ export function SettingsPage(): ReactElement {
           <div>
             <p className="text-sm font-medium">Open when FiveM starts</p>
             <p className="text-sm text-muted-foreground">
-              Starts this app in the background with Windows. When FiveM opens, the scanner window
-              appears and a scan can run.
+              Starts this app in the background with Windows. When FiveM opens, a scan runs and
+              results are sent to Discord without opening this window.
             </p>
           </div>
           <LockedSwitch checked aria-label="Open when FiveM starts locked on" />
