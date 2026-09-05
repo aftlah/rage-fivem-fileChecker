@@ -1,6 +1,6 @@
 [package]
 name = "rage-file-checker"
-version = "1.0.0"
+version = "1.0.1"
 description = "Read-only scanner for FiveM installation files and folders"
 authors = ["Aftlah"]
 edition = "2021"
@@ -18,10 +18,14 @@ tauri-plugin-opener = "2"
 tauri-plugin-dialog = "2"
 tauri-plugin-autostart = "2"
 tauri-plugin-single-instance = "2"
+tauri-plugin-process = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 ureq = { version = "2", features = ["json"] }
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+
+[target.'cfg(any(target_os = "macos", windows, target_os = "linux"))'.dependencies]
+tauri-plugin-updater = "2"
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.59", features = [

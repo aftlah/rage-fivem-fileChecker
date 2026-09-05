@@ -1,5 +1,6 @@
 import { useState, type ReactElement } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { useAutoUpdater } from "@/hooks/useAutoUpdater";
 import { useHistory } from "@/hooks/useHistory";
 import { useSettings } from "@/hooks/useSettings";
 import { DashboardPage } from "@/pages/DashboardPage";
@@ -12,6 +13,7 @@ export default function App(): ReactElement {
   const [view, setView] = useState<AppView>("dashboard");
   const history = useHistory();
   const { settings } = useSettings();
+  useAutoUpdater(true);
 
   if (!settings.operatorName.trim()) {
     return <NameGate />;

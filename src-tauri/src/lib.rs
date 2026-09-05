@@ -32,7 +32,12 @@ pub fn run() {
             MacosLauncher::LaunchAgent,
             Some(vec!["--watch".into()]),
         ))
+        .plugin(tauri_plugin_process::init())
         .setup(|app| {
+            #[cfg(desktop)]
+            app.handle()
+                .plugin(tauri_plugin_updater::Builder::new().build())?;
+
             tray::setup(app)?;
             tray::configure_main_window(app.handle());
             process_watch::start(app.handle().clone());

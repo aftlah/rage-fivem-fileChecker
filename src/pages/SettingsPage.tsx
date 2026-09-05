@@ -1,12 +1,37 @@
-import type { ReactElement } from "react";
+import { useState, type ReactElement } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { scanRules } from "@/scanner/rules";
 import { useSettings } from "@/hooks/useSettings";
+import { checkAndInstallUpdate } from "@/lib/updater";
 
 export function SettingsPage(): ReactElement {
   const { settings, setTheme, setOperatorName } = useSettings();
+  const [updateMessage, setUpdateMessage] = useState<string | null>(null);
+  const [checkingUpdate, setCheckingUpdate] = useState(false);
+
+  async function handleCheckUpdate(): Promise<void> {
+    setCheckingUpdate(true);
+    setUpdateMessage("Checking for updates...");
+    const result = await checkAndInstallUpdate();
+    setCheckingUpdate(false);
+
+    if (result.status === "up-to-date") {
+      setUpdateMessage("Already on the latest version.");
+      return;
+    }
+    if (result.status === "updated") {
+      setUpdateMessage(`Updated to ${result.version}. Restarting...`);
+      return;
+    }
+    if (result.status === "skipped") {
+      setUpdateMessage(result.reason);
+      return;
+    }
+    setUpdateMessage(result.message);
+  }
 
   return (
     <div className="space-y-6">
@@ -126,11 +151,39 @@ export function SettingsPage(): ReactElement {
 
       <Card>
         <CardHeader>
+          <CardTitle>Updates</CardTitle>
+          <CardDescription>
+            The app checks GitHub Releases on startup and can install a signed update automatically.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-medium">Current version</p>
+              <p className="text-sm text-muted-foreground">1.0.1</p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={checkingUpdate}
+              onClick={() => void handleCheckUpdate()}
+            >
+              {checkingUpdate ? "Checking..." : "Check for updates"}
+            </Button>
+          </div>
+          {updateMessage ? (
+            <p className="text-sm text-muted-foreground">{updateMessage}</p>
+          ) : null}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>About</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
           <Info label="Application" value="RAGE File Scanner" />
-          <Info label="Version" value="1.0.0" />
+          <Info label="Version" value="1.0.1" />
           <Info label="Developer" value="Aftlah" />
           <Info label="Mode" value="Read-only filesystem scanner" />
         </CardContent>
