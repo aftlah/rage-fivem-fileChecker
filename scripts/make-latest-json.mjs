@@ -31,6 +31,8 @@ const notes = fs.existsSync(notesPath)
   ? fs.readFileSync(notesPath, "utf8").trim()
   : `RAGE File Scanner ${version}`;
 
+const githubAssetName = setupName.replaceAll(" ", ".");
+
 const latest = {
   version,
   notes,
@@ -38,7 +40,7 @@ const latest = {
   platforms: {
     "windows-x86_64": {
       signature,
-      url: `https://github.com/aftlah/rage-fivem-fileChecker/releases/download/v${version}/${encodeURIComponent(setupName)}`,
+      url: `https://github.com/aftlah/rage-fivem-fileChecker/releases/download/v${version}/${encodeURIComponent(githubAssetName)}`,
     },
   },
 };
