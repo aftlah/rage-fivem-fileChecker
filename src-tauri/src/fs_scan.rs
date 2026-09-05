@@ -518,7 +518,7 @@ mod tests {
             std::time::SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .unwrap()
-                .as_nanos()
+                .as_na  nos()
         ));
         let hidden = dir.join("mods").join("custom");
         fs::create_dir_all(&hidden).unwrap();
