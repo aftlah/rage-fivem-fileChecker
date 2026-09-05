@@ -1,11 +1,11 @@
 {
-  "version": "1.0.3",
-  "notes": "Test auto-update release (1.0.3).",
-  "pub_date": "2026-09-05T16:35:25.446Z",
+  "version": "1.0.4",
+  "notes": "Installer now embeds WebView2 bootstrapper so missing runtime is installed automatically on setup.",
+  "pub_date": "2026-09-05T17:38:24.686Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUcFFTdnZCWmFOVVh5NmhGeU5WZ2hUZnpnLzNlTHpVVEV5RWdvY3czM0xuT3Zxc1F6UnJpUXdrM1QzK0lPSFMvYWVobXFVM2w4R1poTlBwVE1uckN4QXNZcjBzTDF2QkFJPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg4NjI2MTI0CWZpbGU6UkFHRSBGaWxlIFNjYW5uZXJfMS4wLjNfeDY0LXNldHVwLmV4ZQppUmg1QWREb2RVRWJ1ZitpZFhHcUFNQU5uY2dwM0JKUFd4V2ZxMmR4ak0wdWk5eWZOTWRiQ3NEeFpNb2orWk51Zk5PVE1hUTBEWjhxU0pHR0FCNUlBQT09Cg==",
-      "url": "https://github.com/aftlah/rage-fivem-fileChecker/releases/download/v1.0.3/RAGE.File.Scanner_1.0.3_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUcFFTdnZCWmFOVWZCWklDZWlNSlYzanJxWkdNWGRrUVVjMXRpRUt2TlluOXRvck5IZk5hclZZMEl0OWd6SDhkZ3grUmoyQUxQRnVoMEpobWZiejh3NG9KK05aUDhPRFFvPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg4NjI5OTAzCWZpbGU6UkFHRSBGaWxlIFNjYW5uZXJfMS4wLjRfeDY0LXNldHVwLmV4ZQptaXp3ajFza1FJd3VUTVFsRy9kTnkvZTdhRlh1bnloUTJ4UGZDYktjb1pFUitGNDJITWVlc0xhdk4wdUJIaXM4MmlCQStmR0JYK0RYSkZWVEhPbG9CQT09Cg==",
+      "url": "https://github.com/aftlah/rage-fivem-fileChecker/releases/download/v1.0.4/RAGE.File.Scanner_1.0.4_x64-setup.exe"
     }
   }
 }

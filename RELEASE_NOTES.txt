@@ -1,1 +1,1 @@
-Test auto-update release (1.0.3).
+Installer now embeds WebView2 bootstrapper so missing runtime is installed automatically on setup.
