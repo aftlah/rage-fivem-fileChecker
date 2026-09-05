@@ -1,11 +1,11 @@
 {
-  "version": "1.0.1",
-  "notes": "RAGE File Scanner 1.0.1",
-  "pub_date": "2026-09-05T14:55:01.626Z",
+  "version": "1.0.2",
+  "notes": "Deep search for pedaccuracy/weapons/handling/vehicles meta across entire FiveM folder. Removed Water Tune check.",
+  "pub_date": "2026-09-05T15:53:01.583Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUcFFTdnZCWmFOVVVMSTZSN0lWLzFLNDdLSjhQMEFBUFVFMlN4MmxlV29xQUZGUDhuZkhzdlBlRk9SaHFPVGQ3MW9EOXg1SC8zUlNkYWlXdnB3alNoTkROOWJpWGhVYkE0PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg4NjIwMTAxCWZpbGU6UkFHRSBGaWxlIFNjYW5uZXJfMS4wLjFfeDY0LXNldHVwLmV4ZQpWSmRuazlqOC9TSkdwSjFoenpFMHJPNDVNODl6MjBCUTczTVlENFVOZHJQMXQ2M25aREFLOS8xOHh0Si9peURobW5LVitoQkZsLzNTL3ljaDJNbEVCUT09Cg==",
-      "url": "https://github.com/aftlah/rage-fivem-fileChecker/releases/download/v1.0.1/RAGE.File.Scanner_1.0.1_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUcFFTdnZCWmFOVVZDOFVOWFd1QVJrcUtKNUpRK3I0cU82L1ROUWdjZDZNbEYwM1VyK2NFb2J3K0E0SWQvTXg1M296RkhCZUhCYXpJTkRtbTJ0bFRONUdVcFNmemZSeXdzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg4NjIzNTc5CWZpbGU6UkFHRSBGaWxlIFNjYW5uZXJfMS4wLjJfeDY0LXNldHVwLmV4ZQpmQ0swMkZmd01CbUxQMjFKV0ljWERhU2U0a1pQblJtMkQ4WmNzVjNaRWVpOVV4bXU2R29icHY4cVo4QnE5U1l3NCtpa2hQK2ZxenVmQjRLNW0vUHhCUT09Cg==",
+      "url": "https://github.com/aftlah/rage-fivem-fileChecker/releases/download/v1.0.2/RAGE.File.Scanner_1.0.2_x64-setup.exe"
     }
   }
 }
