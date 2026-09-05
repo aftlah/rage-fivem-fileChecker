@@ -1,45 +1,44 @@
 import type { ScanRule } from "../types";
 
+/**
+ * These rules search the entire FiveM folder by filename.
+ * Cheats sometimes place the same files outside the official paths.
+ */
 export const gameDataRules: ScanRule[] = [
   {
     id: "ped-accuracy",
     name: "Ped Accuracy",
     description:
-      "Client file that can change recoil and NPC/player shooting accuracy.",
-    relativePath: "citizen/common/data/ai/pedaccuracy.meta",
-    type: "file",
+      "Looks for pedaccuracy.meta anywhere in the FiveM folder (not only the AI folder).",
+    relativePath: "pedaccuracy.meta",
+    type: "file-search",
     severity: "high",
   },
   {
     id: "weapons-meta",
     name: "Weapons Meta",
-    description: "Client file that can change weapon damage, range, or fire rate.",
-    relativePath: "citizen/common/data/ai/weapons.meta",
-    type: "file",
+    description:
+      "Looks for weapons.meta anywhere in the FiveM folder (not only the AI folder).",
+    relativePath: "weapons.meta",
+    type: "file-search",
     severity: "high",
   },
   {
     id: "handling",
     name: "Handling Meta",
-    description: "Client file that can change vehicle handling and physics.",
-    relativePath: "citizen/common/data/handling.meta",
-    type: "file",
+    description:
+      "Looks for handling.meta anywhere in the FiveM folder (not only the official data path).",
+    relativePath: "handling.meta",
+    type: "file-search",
     severity: "high",
   },
   {
     id: "vehicles-meta",
     name: "Vehicles Meta",
-    description: "Client file that can change vehicle definitions and stats.",
-    relativePath: "citizen/common/data/levels/gta5/vehicles.meta",
-    type: "file",
+    description:
+      "Looks for vehicles.meta anywhere in the FiveM folder (not only levels/gta5).",
+    relativePath: "vehicles.meta",
+    type: "file-search",
     severity: "high",
-  },
-  {
-    id: "watertune",
-    name: "Water Tune",
-    description: "Client file that can change water physics and appearance.",
-    relativePath: "citizen/common/data/watertune.xml",
-    type: "file",
-    severity: "medium",
   },
 ];

@@ -1,4 +1,4 @@
-export type ScanItemType = "directory" | "file" | "scripts";
+export type ScanItemType = "directory" | "file" | "scripts" | "file-search";
 export type ScanSeverity = "high" | "medium" | "low";
 export type ScanStatus = "NOT_FOUND" | "DETECTED" | "ERROR";
 export type OverallStatus = "CLEAN" | "DETECTED" | "WARNING";

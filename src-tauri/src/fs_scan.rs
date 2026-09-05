@@ -66,6 +66,10 @@ pub fn inspect_rule(base: &Path, rule: &ScanRuleInput) -> ScanResultDto {
         return inspect_scripts(base, rule);
     }
 
+    if rule.item_type == "file-search" {
+        return inspect_named_file_search(base, rule);
+    }
+
     let full_path = match join_relative(base, &rule.relative_path) {
         Ok(path) => path,
         Err(message) => {
@@ -163,6 +167,109 @@ pub fn ensure_directory(path: &Path) -> Result<(), String> {
     }
 
     Ok(())
+}
+
+fn inspect_named_file_search(base: &Path, rule: &ScanRuleInput) -> ScanResultDto {
+    let target_name = rule.relative_path.trim();
+    if target_name.is_empty()
+        || target_name.contains('/')
+        || target_name.contains('\\')
+        || target_name == "."
+        || target_name == ".."
+    {
+        return error_result(
+            rule,
+            base.to_string_lossy().into_owned(),
+            "file-search rules must use a plain file name (for example pedaccuracy.meta).".to_string(),
+            false,
+        );
+    }
+
+    let found_files = find_named_files(base, target_name, 80);
+    let path_str = base.to_string_lossy().into_owned();
+
+    if found_files.is_empty() {
+        return ScanResultDto {
+            rule_id: rule.id.clone(),
+            name: rule.name.clone(),
+            status: "NOT_FOUND".to_string(),
+            path: path_str,
+            relative_path: rule.relative_path.clone(),
+            exists: false,
+            item_type: rule.item_type.clone(),
+            severity: rule.severity.clone(),
+            modified_at: None,
+            error: None,
+            found_files: Vec::new(),
+        };
+    }
+
+    let first_full = join_relative(base, &found_files[0])
+        .map(|path| path.to_string_lossy().into_owned())
+        .unwrap_or_else(|_| path_str.clone());
+
+    ScanResultDto {
+        rule_id: rule.id.clone(),
+        name: rule.name.clone(),
+        status: "DETECTED".to_string(),
+        path: first_full,
+        relative_path: rule.relative_path.clone(),
+        exists: true,
+        item_type: rule.item_type.clone(),
+        severity: rule.severity.clone(),
+        modified_at: None,
+        error: None,
+        found_files,
+    }
+}
+
+fn find_named_files(root: &Path, target_name: &str, max: usize) -> Vec<String> {
+    let mut files = Vec::new();
+    let mut stack = vec![root.to_path_buf()];
+
+    while let Some(dir) = stack.pop() {
+        let entries = match fs::read_dir(&dir) {
+            Ok(entries) => entries,
+            Err(_) => continue,
+        };
+
+        for entry in entries.flatten() {
+            if files.len() >= max {
+                files.sort();
+                return files;
+            }
+
+            let path = entry.path();
+            if path.is_dir() {
+                if is_skipped_dir(&entry.file_name()) {
+                    continue;
+                }
+                stack.push(path);
+                continue;
+            }
+
+            if !path.is_file() {
+                continue;
+            }
+
+            let matches_name = entry
+                .file_name()
+                .to_str()
+                .map(|name| name.eq_ignore_ascii_case(target_name))
+                .unwrap_or(false);
+
+            if !matches_name {
+                continue;
+            }
+
+            if let Ok(relative) = path.strip_prefix(root) {
+                files.push(relative.to_string_lossy().replace('\\', "/"));
+            }
+        }
+    }
+
+    files.sort();
+    files
 }
 
 fn inspect_scripts(base: &Path, rule: &ScanRuleInput) -> ScanResultDto {
@@ -401,6 +508,38 @@ mod tests {
             .found_files
             .iter()
             .any(|file| file == "pedaccuracy.meta"));
+    }
+
+    #[test]
+    fn named_file_search_finds_pedaccuracy_outside_ai_folder() {
+        let dir = std::env::temp_dir().join(format!(
+            "rage-named-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        let hidden = dir.join("mods").join("custom");
+        fs::create_dir_all(&hidden).unwrap();
+        fs::write(hidden.join("pedaccuracy.meta"), b"cheat").unwrap();
+
+        let rule = ScanRuleInput {
+            id: "ped-accuracy".into(),
+            name: "Ped Accuracy".into(),
+            relative_path: "pedaccuracy.meta".into(),
+            item_type: "file-search".into(),
+            severity: "high".into(),
+        };
+
+        let result = inspect_rule(&dir, &rule);
+        let _ = fs::remove_dir_all(&dir);
+
+        assert_eq!(result.status, "DETECTED");
+        assert!(result
+            .found_files
+            .iter()
+            .any(|file| file == "mods/custom/pedaccuracy.meta"));
     }
 
     #[test]

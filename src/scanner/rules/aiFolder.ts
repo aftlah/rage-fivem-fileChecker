@@ -4,7 +4,7 @@ export const aiFolderRule: ScanRule = {
   id: "ai-folder",
   name: "AI Folder",
   description:
-    "Checks the AI folder and lists files inside it, such as pedaccuracy.meta.",
+    "Lists files inside the official AI folder (citizen/common/data/ai).",
   relativePath: "citizen/common/data/ai",
   type: "directory",
   severity: "high",
