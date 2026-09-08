@@ -1,1 +1,1 @@
-Installer now embeds WebView2 bootstrapper so missing runtime is installed automatically on setup.
+Moved Discord webhook out of the public repo into a build-time secret. Rotate any previously leaked webhook.
