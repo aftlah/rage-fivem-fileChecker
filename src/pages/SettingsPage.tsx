@@ -61,10 +61,11 @@ export function SettingsPage(): ReactElement {
             />
           </label>
           <label className="block space-y-2">
-            <span className="text-sm font-medium">Discord webhook URL</span>
-            <Input value="Configured (locked)" readOnly disabled />
+            <span className="text-sm font-medium">Discord report</span>
+            <Input value="Configured at build time (locked)" readOnly disabled />
             <span className="text-xs text-muted-foreground">
-              The webhook is set by the app and cannot be changed.
+              The Discord destination is set when the app is built and is not stored in the public
+              repository.
             </span>
           </label>
         </CardContent>

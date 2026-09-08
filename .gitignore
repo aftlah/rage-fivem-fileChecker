@@ -16,6 +16,7 @@ src-tauri/target
 src-tauri/gen
 src-tauri/keys/updater.key
 .signing.env
+.discord.env
 
 .vscode/*
 !.vscode/extensions.json

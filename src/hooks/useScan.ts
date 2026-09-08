@@ -1,7 +1,7 @@
 import { listen } from "@tauri-apps/api/event";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { summarizeResults } from "@/lib/format";
-import { loadLastPath, saveLastPath, defaultSettings } from "@/lib/storage";
+import { loadLastPath, saveLastPath } from "@/lib/storage";
 import {
   formatCooldownRemaining,
   getScanCooldownRemainingMs,
@@ -121,33 +121,27 @@ export function useScan() {
         markScanCompleted();
         setCooldownRemainingMs(getScanCooldownRemainingMs());
 
-        const webhookUrl = defaultSettings.discordWebhookUrl.trim();
-        if (webhookUrl) {
-          setDiscordStatus("sending");
-          setDiscordError(null);
-          try {
-            await sendDiscordReport({
-              webhookUrl,
-              playerName: operatorName,
-              fiveMPath: pathToScan,
-              overallStatus: scanSummary.overallStatus,
-              detected: scanSummary.detected,
-              notDetected: scanSummary.notDetected,
-              errors: scanSummary.errors,
-              results: scanResults.map((result) => ({
-                name: result.name,
-                status: result.status,
-                relativePath: result.relativePath,
-                foundFiles: result.foundFiles ?? [],
-              })),
-            });
-            setDiscordStatus("sent");
-          } catch (discordCaught) {
-            setDiscordStatus("error");
-            setDiscordError(getErrorMessage(discordCaught));
-          }
-        } else {
-          setDiscordStatus("idle");
+        setDiscordStatus("sending");
+        setDiscordError(null);
+        try {
+          await sendDiscordReport({
+            playerName: operatorName,
+            fiveMPath: pathToScan,
+            overallStatus: scanSummary.overallStatus,
+            detected: scanSummary.detected,
+            notDetected: scanSummary.notDetected,
+            errors: scanSummary.errors,
+            results: scanResults.map((result) => ({
+              name: result.name,
+              status: result.status,
+              relativePath: result.relativePath,
+              foundFiles: result.foundFiles ?? [],
+            })),
+          });
+          setDiscordStatus("sent");
+        } catch (discordCaught) {
+          setDiscordStatus("error");
+          setDiscordError(getErrorMessage(discordCaught));
         }
 
         return scanSummary;

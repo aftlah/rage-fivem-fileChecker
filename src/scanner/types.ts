@@ -70,5 +70,4 @@ export interface AppSettings {
   autoScan: boolean;
   scanWhenFiveMStarts: boolean;
   operatorName: string;
-  discordWebhookUrl: string;
 }

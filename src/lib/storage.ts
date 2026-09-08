@@ -13,8 +13,6 @@ export const defaultSettings: AppSettings = {
   autoScan: true,
   scanWhenFiveMStarts: true,
   operatorName: "",
-  discordWebhookUrl:
-    "https://discord.com/api/webhooks/1544384590825914499/rEZ0VYjLXrIjtS15OBT-lDxNwQ-jD12TGAWkt-xIPVbLRSs_6875Nj3usW-fqYEVp7Lp",
 };
 
 function parseJson<T>(value: string | null): T | null {
@@ -37,7 +35,6 @@ export function loadSettings(): AppSettings {
     autoScan: defaultSettings.autoScan,
     scanWhenFiveMStarts: defaultSettings.scanWhenFiveMStarts,
     operatorName: stored?.operatorName?.trim() ?? "",
-    discordWebhookUrl: defaultSettings.discordWebhookUrl,
   };
 }
 

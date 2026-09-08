@@ -38,7 +38,6 @@ export function scheduleWatchRestart(): Promise<void> {
 }
 
 export function sendDiscordReport(report: {
-  webhookUrl: string;
   playerName: string;
   fiveMPath: string;
   overallStatus: string;

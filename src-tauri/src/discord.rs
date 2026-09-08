@@ -21,7 +21,6 @@ pub struct DiscordResultItem {
 #[derive(Debug, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct DiscordReport {
-    pub webhook_url: String,
     pub player_name: String,
     pub five_m_path: String,
     pub overall_status: String,
@@ -33,8 +32,19 @@ pub struct DiscordReport {
 
 const FIELD_LIMIT: usize = 1024;
 
+fn configured_webhook() -> Result<String, String> {
+    // Injected at compile time from DISCORD_WEBHOOK_URL / .discord.env (never from the client).
+    match option_env!("DISCORD_WEBHOOK_URL") {
+        Some(url) if !url.trim().is_empty() => Ok(url.trim().to_string()),
+        _ => Err(
+            "Discord webhook is not configured in this build. Set DISCORD_WEBHOOK_URL or .discord.env before building."
+                .to_string(),
+        ),
+    }
+}
+
 pub fn send_scan_report(report: DiscordReport) -> Result<(), String> {
-    let webhook = report.webhook_url.trim().to_string();
+    let webhook = configured_webhook()?;
     if !is_discord_webhook(&webhook) {
         return Err("Discord webhook URL is invalid.".to_string());
     }
